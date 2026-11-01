@@ -77,8 +77,8 @@ export const WhatIfPlannerView: React.FC = () => {
       } else {
         throw new Error(data.message || 'Simulation failed');
       }
-    } catch (err: any) {
-      console.error('What-If simulation error:', err);
+    } catch (err: unknown) {
+      console.error('What-If simulation error:', err instanceof Error ? err.message : err);
       setError('Could not complete AI simulation. Please try again.');
     } finally {
       setIsSimulating(false);
@@ -131,12 +131,16 @@ export const WhatIfPlannerView: React.FC = () => {
 
       {/* Input Form & Preset Chips */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <label
+          htmlFor="what-if-scenario-input"
+          className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+        >
           Ask a Scenario Question
         </label>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <input
+            id="what-if-scenario-input"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}

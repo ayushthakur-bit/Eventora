@@ -58,10 +58,9 @@ export function calculateBudgetUtilization(actualExpenses: number, totalBudget: 
 /**
  * Normalizes allocation amounts so their sum matches totalBudget exactly (handles rounding residue on contingency).
  */
-export function normalizeAllocationsToTotal(
-  allocations: { category: string; amount: number; percentage: number; reason?: string; costSavingTip?: string }[],
-  totalBudget: number
-) {
+export function normalizeAllocationsToTotal<
+  T extends { category: string; amount: number; percentage: number; reason?: string; costSavingTip?: string }
+>(allocations: T[], totalBudget: number): T[] {
   if (!allocations.length || totalBudget <= 0) return allocations;
 
   // Recalculate amounts based on percentages if they don't add up

@@ -43,8 +43,8 @@ export interface UserWorkspaceData {
 }
 
 export const DEMO_USER_ID = 'usr_demo_898495';
-export const DEMO_USER_EMAIL = 'bhrigunaththakur088@gmail.com';
-export const ACCOUNTS_REGISTRY_KEY = 'eventease_accounts_registry_v1';
+export const DEMO_USER_EMAIL = 'priya.events@eventora.ai';
+export const ACCOUNTS_REGISTRY_KEY = 'eventora_accounts_registry_v2';
 export const WORKSPACE_KEY_PREFIX = 'eventease_workspace_v3_';
 
 /**

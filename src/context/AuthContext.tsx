@@ -40,35 +40,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_USER_KEY = 'eventease_auth_user';
+const LOCAL_STORAGE_USER_KEY = 'eventora_auth_user_v2';
+const LEGACY_AUTO_USER_KEY = 'eventease_auth_user';
+const LEGACY_AUTO_REGISTRY_KEY = 'eventease_accounts_registry_v1';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
+      // Remove legacy keys that previously auto-signed in visitors on first load
+      localStorage.removeItem(LEGACY_AUTO_USER_KEY);
+      localStorage.removeItem(LEGACY_AUTO_REGISTRY_KEY);
+
       const saved = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as UserProfile;
-        const canonicalId = deriveCanonicalUserId({
-          email: parsed.email,
-          phoneNumber: parsed.phoneNumber,
-        });
-        const normalizedUser: UserProfile = {
-          ...parsed,
-          id: canonicalId,
-        };
-        return upsertRegisteredAccount(localStorage, normalizedUser);
+        if (parsed && (parsed.email || parsed.phoneNumber)) {
+          const canonicalId = deriveCanonicalUserId({
+            email: parsed.email,
+            phoneNumber: parsed.phoneNumber,
+          });
+          const normalizedUser: UserProfile = {
+            ...parsed,
+            id: canonicalId,
+          };
+          return upsertRegisteredAccount(localStorage, normalizedUser);
+        }
       }
     } catch (e) {
       console.warn('Failed to parse saved user:', e);
     }
-    // Default demo user for initial session
-    const initialDemo: UserProfile = {
-      ...DEMO_USER,
-      id: deriveCanonicalUserId({ email: DEMO_USER.email }),
-      authProvider: 'email',
-      lastLoginAt: new Date().toISOString(),
-    };
-    return upsertRegisteredAccount(localStorage, initialDemo);
+    // Visitors start unauthenticated and must sign in
+    return null;
   });
 
   const [savedAccounts, setSavedAccounts] = useState<UserProfile[]>(() => {

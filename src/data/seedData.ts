@@ -2,8 +2,8 @@ import { EventData, EventExpense, EventTask, EventVendor, EventGuest, UserProfil
 
 export const DEMO_USER: UserProfile = {
   id: 'usr_demo_898495',
-  name: 'Bhrigunath Thakur',
-  email: 'bhrigunaththakur088@gmail.com',
+  name: 'Priya Sharma',
+  email: 'priya.events@eventora.ai',
   avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
   preferences: {
     defaultCurrency: 'INR',

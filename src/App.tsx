@@ -28,8 +28,10 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
   const { activeEvent, setActiveEventId } = useEvents();
 
-  // Navigation State
-  const [currentView, setCurrentView] = useState<string>('landing');
+  // Navigation State — require sign-in on first visit when unauthenticated
+  const [currentView, setCurrentView] = useState<string>(() =>
+    isAuthenticated ? 'landing' : 'login'
+  );
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -66,25 +68,31 @@ function AppContent() {
   // Support ?autostart=1 or ?view=login query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('autostart') === '1') {
-      setCurrentView('dashboard');
-    } else if (params.get('view') === 'login' || params.get('view') === 'auth') {
+    if (params.get('view') === 'login' || params.get('view') === 'auth') {
       setCurrentView('login');
     } else if (params.get('view') === 'signup') {
       setCurrentView('signup');
+    } else if (params.get('autostart') === '1') {
+      setCurrentView(isAuthenticated ? 'dashboard' : 'login');
     } else if (params.get('view') === 'data-management' || params.get('view') === 'data') {
-      setCurrentView('data-management');
+      setCurrentView(isAuthenticated ? 'data-management' : 'login');
     } else if (params.get('view') === 'copilot' || params.get('view') === 'chat') {
-      setCurrentView('copilot');
+      setCurrentView(isAuthenticated ? 'copilot' : 'login');
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [currentView]);
 
-  // If the user logs into a new account with 0 events while on an event-specific view, show the dashboard empty state with Add Event CTA
+  // Require sign-in for any non-public view
   useEffect(() => {
+    const publicViews = new Set(['landing', 'login', 'signup']);
+    if (!isAuthenticated && !publicViews.has(currentView)) {
+      setCurrentView('login');
+      return;
+    }
+
     const eventRequiredViews = new Set([
       'overview',
       'ai-plan',
@@ -96,20 +104,32 @@ function AppContent() {
       'copilot',
       'invitations',
     ]);
-    if (!activeEvent && eventRequiredViews.has(currentView)) {
+    if (isAuthenticated && !activeEvent && eventRequiredViews.has(currentView)) {
       setCurrentView('dashboard');
     }
-  }, [activeEvent, currentView]);
+  }, [isAuthenticated, activeEvent, currentView]);
 
-  const handleOpenControlEvent = (id?: any) => {
-    const validId = typeof id === 'string' ? id : activeEvent?.id || null;
-    setControlEventId(validId);
-    setIsControlModalOpen(true);
+  const requireAuth = (action: () => void) => {
+    if (!isAuthenticated) {
+      setCurrentView('login');
+      return;
+    }
+    action();
+  };
+
+  const handleOpenControlEvent = (id?: string) => {
+    requireAuth(() => {
+      const validId = typeof id === 'string' ? id : activeEvent?.id || null;
+      setControlEventId(validId);
+      setIsControlModalOpen(true);
+    });
   };
 
   const handleOpenEvent = (id: string, view = 'overview') => {
-    setActiveEventId(id);
-    setCurrentView(view);
+    requireAuth(() => {
+      setActiveEventId(id);
+      setCurrentView(view);
+    });
   };
 
   const handleEventCreated = (newEvent: EventData) => {
@@ -119,9 +139,17 @@ function AppContent() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'dark' : ''} bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200`}>
+      {/* Accessible Skip Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-xl focus:bg-indigo-600 focus:text-white focus:font-bold focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Top Navigation */}
       <Navbar
-        onOpenCreateWizard={() => setIsCreateWizardOpen(true)}
+        onOpenCreateWizard={() => requireAuth(() => setIsCreateWizardOpen(true))}
         onOpenAuth={() => setCurrentView('login')}
         onOpenControlModal={handleOpenControlEvent}
         currentView={currentView}
@@ -132,7 +160,7 @@ function AppContent() {
 
       {/* Main Content Layout */}
       {currentView === 'login' ? (
-        <main className="flex-1">
+        <main id="main-content" className="flex-1">
           <AuthPage
             initialMode="login"
             onNavigateHome={() => setCurrentView('landing')}
@@ -142,7 +170,7 @@ function AppContent() {
           />
         </main>
       ) : currentView === 'signup' ? (
-        <main className="flex-1">
+        <main id="main-content" className="flex-1">
           <AuthPage
             initialMode="signup"
             onNavigateHome={() => setCurrentView('landing')}
@@ -152,10 +180,10 @@ function AppContent() {
           />
         </main>
       ) : currentView === 'landing' ? (
-        <main className="flex-1">
+        <main id="main-content" className="flex-1">
           <LandingPage
-            onPlanEvent={() => setIsCreateWizardOpen(true)}
-            onExploreDashboard={() => setCurrentView('dashboard')}
+            onPlanEvent={() => requireAuth(() => setIsCreateWizardOpen(true))}
+            onExploreDashboard={() => requireAuth(() => setCurrentView('dashboard'))}
             onOpenAuth={(m) => setCurrentView(m === 'signup' ? 'signup' : 'login')}
           />
         </main>
@@ -193,7 +221,7 @@ function AppContent() {
           />
 
           {/* View Container */}
-          <main className="flex-1 min-w-0 pb-16">
+          <main id="main-content" className="flex-1 min-w-0 pb-16">
             <div className="mb-4 flex items-center pr-24 md:pr-0">
               <button
                 onClick={() => setCurrentView('landing')}
@@ -263,11 +291,13 @@ function AppContent() {
         eventId={controlEventId}
       />
 
-      {/* Global Floating Copilot Chatbot Launcher */}
-      <FloatingCopilotWidget
-        currentView={currentView}
-        onOpenFullCopilot={() => setCurrentView('copilot')}
-      />
+      {/* Global Floating Copilot Chatbot Launcher (only when signed in) */}
+      {isAuthenticated && (
+        <FloatingCopilotWidget
+          currentView={currentView}
+          onOpenFullCopilot={() => setCurrentView('copilot')}
+        />
+      )}
     </div>
   );
 }

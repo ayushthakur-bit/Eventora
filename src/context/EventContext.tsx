@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   EventData,
+  EventPlan,
   EventTask,
   EventExpense,
   EventVendor,
@@ -10,6 +11,7 @@ import {
   TimelineScheduleItem,
 } from '../types';
 import { validateDatabaseBackup, DatabaseBackup } from '../utils/data-management';
+import { parseGuestsFromCsv, formatGuestsToCsv } from '../utils/event-plan-engine';
 import {
   INITIAL_EVENTS,
   INITIAL_TASKS,
@@ -25,6 +27,11 @@ import {
   DEMO_USER_ID,
 } from '../utils/user-workspace';
 import { useAuth } from './AuthContext';
+
+export interface PlanBackupSnapshot {
+  event: EventData;
+  plan: EventPlan;
+}
 
 interface EventContextType {
   events: EventData[];
@@ -80,7 +87,7 @@ interface EventContextType {
   // What-If
   applyWhatIfResult: (result: WhatIfSimulationResult) => void;
   undoPlanChange: () => void;
-  previousPlanBackup: any | null;
+  previousPlanBackup: PlanBackupSnapshot | null;
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
@@ -101,7 +108,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadUserWorkspace(localStorage, activeUserId, DEFAULT_DEMO_SEED)
   );
 
-  const [previousPlanBackup, setPreviousPlanBackup] = useState<any | null>(null);
+  const [previousPlanBackup, setPreviousPlanBackup] = useState<PlanBackupSnapshot | null>(null);
 
   // When currentUser changes (login, signup, switch account, logout), load that user's isolated workspace
   useEffect(() => {
@@ -384,28 +391,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const importGuestsFromCsv = (csvContent: string): number => {
     if (!activeEventId) return 0;
-    const lines = csvContent.split('\n').filter((l) => l.trim().length > 0);
-    let count = 0;
-    const newGuests: EventGuest[] = [];
-
-    const startIndex = lines[0]?.toLowerCase().includes('name') ? 1 : 0;
-
-    for (let i = startIndex; i < lines.length; i++) {
-      const parts = lines[i].split(',').map((p) => p.trim().replace(/^"|"$/g, ''));
-      if (parts[0]) {
-        newGuests.push({
-          id: `gst_${Date.now()}_${i}`,
-          eventId: activeEventId,
-          name: parts[0],
-          contactInfo: parts[1] || '',
-          rsvpStatus: (parts[2] as any) || 'Pending',
-          group: (parts[3] as any) || 'General',
-          dietaryRequirements: parts[4] || '',
-          attendanceCount: parseInt(parts[5] || '1', 10) || 1,
-        });
-        count++;
-      }
-    }
+    const newGuests = parseGuestsFromCsv(csvContent, activeEventId);
 
     if (newGuests.length > 0) {
       updateWorkspace((prev) => ({
@@ -413,24 +399,11 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         guests: [...prev.guests, ...newGuests],
       }));
     }
-    return count;
+    return newGuests.length;
   };
 
   const exportGuestsToCsv = (): string => {
-    const rows = [
-      ['Name', 'Contact', 'RSVP Status', 'Group', 'Dietary Requirements', 'Count'].join(','),
-      ...currentGuests.map((g) =>
-        [
-          `"${g.name}"`,
-          `"${g.contactInfo || ''}"`,
-          `"${g.rsvpStatus}"`,
-          `"${g.group}"`,
-          `"${g.dietaryRequirements || ''}"`,
-          g.attendanceCount,
-        ].join(',')
-      ),
-    ];
-    return rows.join('\n');
+    return formatGuestsToCsv(currentGuests);
   };
 
   const getSavedInvitation = (eventId: string): SavedInvitationState | null => {
@@ -885,8 +858,9 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       updateEvent(id, { ...parsed, id, userId: activeUserId, updatedAt: new Date().toISOString() });
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: `Invalid JSON syntax: ${err.message}` };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown parse error';
+      return { success: false, error: `Invalid JSON syntax: ${message}` };
     }
   };
 

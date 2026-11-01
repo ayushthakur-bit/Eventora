@@ -187,14 +187,19 @@ export const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({
           {/* Sign Up Name Field */}
           {mode === 'signup' && (
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor="phone-auth-name"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Full Name
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="phone-auth-name"
                   type="text"
                   required
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Priya Sharma"
@@ -207,7 +212,10 @@ export const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({
           {/* Phone Number Field with Country Selector */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <label
+                htmlFor="phone-auth-number"
+                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
                 Phone Number
               </label>
               <button
@@ -227,6 +235,7 @@ export const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({
                   onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
                   className="h-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5 hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
                   aria-label="Select country code"
+                  aria-expanded={isCountryDropdownOpen}
                 >
                   <span className="text-base">{selectedCountry.flag}</span>
                   <span className="text-xs font-semibold">{selectedCountry.dialCode}</span>
@@ -270,8 +279,10 @@ export const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({
               <div className="relative flex-1">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="phone-auth-number"
                   type="tel"
                   required
+                  autoComplete="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
                   placeholder={selectedCountry.format}

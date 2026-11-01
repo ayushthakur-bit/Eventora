@@ -133,14 +133,19 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
 
         <form onSubmit={handleResetSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            <label
+              htmlFor="auth-reset-email"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+            >
               Email Address
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
+                id="auth-reset-email"
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
@@ -178,14 +183,19 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
       {/* Sign Up Name Field */}
       {mode === 'signup' && (
         <div className="space-y-1">
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <label
+            htmlFor="auth-full-name"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
             Full Name
           </label>
           <div className="relative">
             <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
+              id="auth-full-name"
               type="text"
               required
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Priya Sharma"
@@ -198,7 +208,10 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
       {/* Email Address Field */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <label
+            htmlFor="auth-email-input"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
             Email Address
           </label>
           <button
@@ -212,12 +225,16 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
         <div className="relative">
           <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
+            id="auth-email-input"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onBlur={() => setEmailTouched(true)}
             placeholder="name@example.com"
+            aria-invalid={Boolean(emailTouched && !emailValidation.isValid && email.length > 0)}
+            aria-describedby={emailTouched && !emailValidation.isValid && email.length > 0 ? 'auth-email-error' : undefined}
             className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
               emailTouched && !emailValidation.isValid && email.length > 0
                 ? 'border-rose-400 focus:ring-rose-500'
@@ -226,7 +243,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
           />
         </div>
         {emailTouched && !emailValidation.isValid && email.length > 0 && (
-          <p className="text-[11px] text-rose-500 mt-1 flex items-center gap-1">
+          <p id="auth-email-error" role="alert" className="text-[11px] text-rose-500 mt-1 flex items-center gap-1">
             <AlertCircle className="w-3 h-3 shrink-0" />
             {emailValidation.error}
           </p>
@@ -236,7 +253,10 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
       {/* Password Field */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <label
+            htmlFor="auth-password-input"
+            className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
             Password
           </label>
           {mode === 'login' && (
@@ -252,8 +272,10 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
         <div className="relative">
           <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
+            id="auth-password-input"
             type={showPassword ? 'text' : 'password'}
             required
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••••••"
