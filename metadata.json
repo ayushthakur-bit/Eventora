@@ -1,0 +1,6 @@
+{
+  "name": "EventEase AI",
+  "description": "Your Vision. Your Budget. Your Perfect Event. Personalized AI event planning, smart budget tracking, timeline management, and What-If simulation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

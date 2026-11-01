@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profile isolation
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Event collections and subcollections isolated to the authenticated owner
+      match /events/{eventId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+
+        match /tasks/{taskId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+
+        match /expenses/{expenseId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+
+        match /vendors/{vendorId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+
+        match /guests/{guestId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+    }
+  }
+}
