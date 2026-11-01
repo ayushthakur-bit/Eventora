@@ -12,7 +12,6 @@ import {
   Clock,
   ChevronRight,
   Zap,
-  RotateCcw,
   Sliders,
   DollarSign,
   TrendingDown,
@@ -20,14 +19,12 @@ import {
   Music2,
   Award,
   Check,
-  Lock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { useEvents } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../utils/budgetCalculations';
-import { INITIAL_EVENTS } from '../data/seedData';
 
 interface LandingPageProps {
   onPlanEvent: () => void;
@@ -114,7 +111,7 @@ const WHAT_IF_SCENARIOS = [
 export const LandingPage: React.FC<LandingPageProps> = ({
   onPlanEvent,
   onExploreDashboard,
-  onOpenAuth,
+  onOpenAuth: _onOpenAuth,
 }) => {
   const { events, setActiveEventId } = useEvents();
   const { isAuthenticated } = useAuth();
@@ -126,7 +123,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   // What-If Simulator Active Scenario
   const [activeScenarioId, setActiveScenarioId] = useState('budget-cut');
-  const [isSimulating, setIsSimulating] = useState(false);
 
   // Blueprint Category Filter
   const [blueprintCategory, setBlueprintCategory] = useState<'All' | 'Wedding' | 'Birthday' | 'Corporate'>('All');
@@ -157,14 +153,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         colors: ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b'],
       });
     }
-  };
-
-  const handleSimulateClick = () => {
-    setIsSimulating(true);
-    setTimeout(() => {
-      setIsSimulating(false);
-      triggerCelebration();
-    }, 900);
   };
 
   const filteredEvents = events.filter((evt) => {
@@ -577,18 +565,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <span className="text-slate-500 dark:text-slate-400">
                   Approx. <strong className="text-slate-800 dark:text-slate-200">{formatCurrency(Math.round(targetBudget / guestCount), 'INR')}</strong> per guest experience
                 </span>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={(e) => {
-                    triggerCelebration(e);
-                    onPlanEvent();
-                  }}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center justify-center gap-2 shadow-md transition-colors"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Generate Full AI Blueprint with These Numbers</span>
-                </motion.button>
               </div>
             </div>
           </motion.div>
@@ -774,39 +750,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                           </div>
                         ))}
                       </div>
-                    </div>
-
-                    {/* Bottom Action Row */}
-                    <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleSimulateClick}
-                        disabled={isSimulating}
-                        className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-600/30"
-                      >
-                        {isSimulating ? (
-                          <>
-                            <RotateCcw className="w-4 h-4 animate-spin text-indigo-200" />
-                            <span>Simulating Mathematical Rebalance...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="w-4 h-4 fill-white" />
-                            <span>Run AI Rebalance Calculation</span>
-                          </>
-                        )}
-                      </motion.button>
-
-                      <button
-                        onClick={() => {
-                          if (events[0]) setActiveEventId(events[0].id);
-                          onExploreDashboard();
-                        }}
-                        className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs transition-colors text-center"
-                      >
-                        Test on Active Event →
-                      </button>
                     </div>
                   </motion.div>
                 </AnimatePresence>
@@ -1022,22 +965,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <p className="mt-4 text-indigo-200 text-base max-w-2xl mx-auto leading-relaxed">
               Create your customized plan in under 2 minutes. Free to plan, test scenarios, and export to PDF.
             </p>
-
-            <div className="mt-8">
-              <motion.button
-                whileHover={{ scale: 1.06, y: -2 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={(e) => {
-                  triggerCelebration(e);
-                  onPlanEvent();
-                }}
-                className="px-9 py-4 rounded-2xl font-bold text-base text-indigo-950 bg-white hover:bg-indigo-50 shadow-2xl transition-all inline-flex items-center gap-2 group"
-              >
-                <Sparkles className="w-5 h-5 text-indigo-600 group-hover:rotate-12 transition-transform" />
-                <span>Launch Event Creator</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
-            </div>
           </motion.div>
         </div>
       </section>

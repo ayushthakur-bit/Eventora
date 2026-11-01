@@ -1,18 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Wallet,
   PlusCircle,
-  TrendingDown,
-  TrendingUp,
   AlertTriangle,
-  Calendar,
-  CheckCircle2,
   Trash2,
   Edit2,
   X,
-  PieChart as PieChartIcon,
-  BarChart2,
-  Lightbulb,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import {
@@ -38,24 +30,11 @@ export const BudgetManagementView: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  if (!activeEvent) {
-    return (
-      <div className="p-8 text-center text-slate-500">
-        No active event selected.
-      </div>
-    );
-  }
-
-  // Core Math
-  const totalPlanned = activeEvent.totalBudget;
   const totalSpent = useMemo(() => expenses.reduce((sum, e) => sum + e.amount, 0), [expenses]);
-  const remainingBudget = calculateRemainingBudget(totalPlanned, totalSpent);
-  const utilization = calculateBudgetUtilization(totalSpent, totalPlanned);
-  const isOverrun = totalSpent > totalPlanned;
 
   // Categories from plan or defaults
   const categories = useMemo(() => {
-    if (activeEvent.plan?.budgetBreakdown) {
+    if (activeEvent?.plan?.budgetBreakdown) {
       return activeEvent.plan.budgetBreakdown.map((b) => b.category);
     }
     return [
@@ -73,7 +52,7 @@ export const BudgetManagementView: React.FC = () => {
   // Category-wise Breakdown Calculations
   const categoryStats = useMemo(() => {
     return categories.map((cat) => {
-      const plannedItem = activeEvent.plan?.budgetBreakdown.find(
+      const plannedItem = activeEvent?.plan?.budgetBreakdown.find(
         (b) => b.category.toLowerCase() === cat.toLowerCase()
       );
       const plannedAmount = plannedItem ? plannedItem.amount : 0;
@@ -93,6 +72,20 @@ export const BudgetManagementView: React.FC = () => {
       };
     });
   }, [categories, activeEvent, expenses]);
+
+  if (!activeEvent) {
+    return (
+      <div className="p-8 text-center text-slate-500">
+        No active event selected.
+      </div>
+    );
+  }
+
+  // Core Math
+  const totalPlanned = activeEvent.totalBudget;
+  const remainingBudget = calculateRemainingBudget(totalPlanned, totalSpent);
+  const utilization = calculateBudgetUtilization(totalSpent, totalPlanned);
+  const isOverrun = totalSpent > totalPlanned;
 
   const handleOpenAdd = () => {
     setEditingExpense(null);
@@ -402,13 +395,20 @@ export const BudgetManagementView: React.FC = () => {
 
       {/* Add / Edit Expense Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingExpense ? 'Edit Expense' : 'Log New Expense'}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+        >
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {editingExpense ? 'Edit Expense' : 'Log New Expense'}
               </h3>
               <button
+                type="button"
+                aria-label="Close expense modal"
                 onClick={() => setIsModalOpen(false)}
                 className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
@@ -424,10 +424,12 @@ export const BudgetManagementView: React.FC = () => {
 
             <form onSubmit={handleSaveExpense} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="expense-category" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Budget Category
                 </label>
                 <select
+                  id="expense-category"
+                  aria-label="Budget Category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -441,10 +443,12 @@ export const BudgetManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="expense-vendor-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Vendor or Payee Name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="expense-vendor-name"
+                  aria-label="Vendor or Payee Name"
                   type="text"
                   required
                   value={vendorName}
@@ -456,10 +460,12 @@ export const BudgetManagementView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="expense-amount" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Amount ({activeEvent.currency}) <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="expense-amount"
+                    aria-label="Expense Amount"
                     type="number"
                     min={1}
                     required
@@ -470,10 +476,12 @@ export const BudgetManagementView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="expense-payment-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Payment Date
                   </label>
                   <input
+                    id="expense-payment-date"
+                    aria-label="Payment Date"
                     type="date"
                     required
                     value={date}
@@ -484,10 +492,12 @@ export const BudgetManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="expense-payment-status" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Payment Status
                 </label>
                 <select
+                  id="expense-payment-status"
+                  aria-label="Payment Status"
                   value={paymentStatus}
                   onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -499,10 +509,12 @@ export const BudgetManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="expense-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Notes (Optional)
                 </label>
                 <input
+                  id="expense-notes"
+                  aria-label="Expense Notes"
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}

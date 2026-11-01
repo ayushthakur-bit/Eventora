@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
 import {
   Sparkles,
-  Calendar,
-  PlusCircle,
   Sun,
   Moon,
   User,
   LogOut,
-  ChevronDown,
-  Layers,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useEvents } from '../context/EventContext';
-import { formatCurrency } from '../utils/budgetCalculations';
 
 interface NavbarProps {
   onOpenCreateWizard: () => void;
@@ -26,17 +19,15 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  onOpenCreateWizard,
-  onOpenAuth,
-  onOpenControlModal,
+  onOpenCreateWizard: _onOpenCreateWizard,
+  onOpenAuth: _onOpenAuth,
+  onOpenControlModal: _onOpenControlModal,
   currentView,
   setCurrentView,
   darkMode,
   setDarkMode,
 }) => {
   const { currentUser, isAuthenticated, logout } = useAuth();
-  const { events, activeEventId, activeEvent, setActiveEventId } = useEvents();
-  const [showEventDropdown, setShowEventDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   return (
@@ -67,94 +58,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Center / Event Selector if logged in */}
-        {isAuthenticated && events.length > 0 && currentView !== 'landing' && (
-          <div className="relative hidden md:block">
-            <button
-              onClick={() => setShowEventDropdown(!showEventDropdown)}
-              className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200 transition-colors"
-              aria-expanded={showEventDropdown}
-              aria-label="Select active event"
-            >
-              <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span className="max-w-[200px] truncate">
-                {activeEvent ? activeEvent.name : 'Select Event'}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            {showEventDropdown && (
-              <div
-                className="absolute left-0 mt-2 w-72 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2"
-                onMouseLeave={() => setShowEventDropdown(false)}
-              >
-                <div className="px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Switch Active Event
-                </div>
-                {events.map((evt) => (
-                  <button
-                    key={evt.id}
-                    onClick={() => {
-                      setActiveEventId(evt.id);
-                      setShowEventDropdown(false);
-                      if (currentView === 'landing') setCurrentView('dashboard');
-                    }}
-                    className={`w-full text-left px-3.5 py-2 text-sm flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors ${
-                      evt.id === activeEventId ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-medium' : 'text-slate-700 dark:text-slate-200'
-                    }`}
-                  >
-                    <div className="truncate pr-2">
-                      <div className="truncate">{evt.name}</div>
-                      <div className="text-xs text-slate-400 font-normal">
-                        {evt.eventType} • {formatCurrency(evt.totalBudget, evt.currency)}
-                      </div>
-                    </div>
-                    {evt.id === activeEventId && (
-                      <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400"></span>
-                    )}
-                  </button>
-                ))}
-                {activeEvent && (
-                  <div className="border-t border-slate-100 dark:border-slate-700/50 mt-1 pt-1 px-2">
-                    <button
-                      onClick={() => {
-                        setShowEventDropdown(false);
-                        onOpenControlModal?.();
-                      }}
-                      className="w-full text-left px-2 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60 rounded flex items-center gap-1.5"
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500" /> Control Event Details
-                    </button>
-                  </div>
-                )}
-                <div className="border-t border-slate-100 dark:border-slate-700/50 mt-1 pt-1 px-2">
-                  <button
-                    onClick={() => {
-                      setShowEventDropdown(false);
-                      onOpenCreateWizard();
-                    }}
-                    className="w-full text-left px-2 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded flex items-center gap-1.5"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" /> + Plan New Event
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Right Action Icons & Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick Plan Event Button */}
-          <button
-            onClick={onOpenCreateWizard}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            aria-label="Create New Event"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">Plan Event</span>
-          </button>
-
           {/* Dark / Light Toggle */}
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -211,17 +116,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <User className="w-4 h-4 text-slate-400" />
                     <span>Profile & Settings</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowUserDropdown(false);
-                      setCurrentView('dashboard');
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer"
-                  >
-                    <Layers className="w-4 h-4 text-slate-400" />
-                    <span>My Events</span>
                   </button>
 
                   <button

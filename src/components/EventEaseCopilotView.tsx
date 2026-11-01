@@ -4,7 +4,6 @@ import {
   Send,
   User,
   CheckCircle2,
-  Calendar,
   Wallet,
   ShieldAlert,
   Plus,
@@ -12,8 +11,6 @@ import {
   Copy,
   Check,
   RefreshCw,
-  Download,
-  MessageSquare,
   Briefcase,
   Clock,
   Palette,
@@ -369,36 +366,6 @@ export const EventEaseCopilotView: React.FC = () => {
     guests
   );
 
-  const handleCreateNewThread = (customPersona?: CopilotPersona, customTitle?: string) => {
-    const personaToUse = customPersona || selectedPersona;
-    const personaMeta = PERSONA_CONFIG.find((p) => p.id === personaToUse) || PERSONA_CONFIG[0];
-    const newThread: CopilotThread = {
-      id: `thread_${Date.now()}`,
-      eventId: activeEvent.id,
-      title: customTitle || `${personaMeta.shortLabel} Session`,
-      persona: personaToUse,
-      updatedAt: new Date().toISOString(),
-      messages: [
-        {
-          id: `msg_welcome_${Date.now()}`,
-          role: 'assistant',
-          persona: personaToUse,
-          content: `### ${personaMeta.label} Ready\n\nI am now operating in **${personaMeta.label}** mode for **${activeEvent.name}**.\n\n- **Focus**: ${personaMeta.description}\n- **Available Budget**: **${formatCurrency(contextDigest.remainingBudget, activeEvent.currency)}** remaining of **${formatCurrency(activeEvent.totalBudget, activeEvent.currency)}**\n\nWhat would you like to tackle first?`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          suggestions: [
-            'Reduce my budget by 15%',
-            'Draft a vendor negotiation script',
-            'Suggest unique decoration ideas',
-            'Weather contingency checklist',
-          ],
-          proposedActions: [],
-        },
-      ],
-    };
-    setThreads((prev) => [newThread, ...prev]);
-    setActiveThreadId(newThread.id);
-  };
-
   const handleDeleteThread = (threadId: string) => {
     if (eventThreads.length <= 1) {
       // Reset the single thread instead of leaving empty
@@ -426,52 +393,58 @@ export const EventEaseCopilotView: React.FC = () => {
     if (action.applied) return;
 
     if (action.type === 'add_task') {
+      const priorityVal = String(action.payload.priority || 'High');
+      const priority: 'Low' | 'Medium' | 'High' =
+        priorityVal === 'Low' || priorityVal === 'Medium' ? priorityVal : 'High';
       addTask({
-        title: action.payload.title || 'Copilot Recommended Task',
-        category: action.payload.category || 'Planning',
-        dueDate: action.payload.dueDate || activeEvent.startDate,
-        priority: action.payload.priority || 'High',
+        title: String(action.payload.title || 'Copilot Recommended Task'),
+        category: String(action.payload.category || 'Planning'),
+        dueDate: String(action.payload.dueDate || activeEvent.startDate),
+        priority,
         status: 'Not Started',
-        description: action.payload.notes || 'Added via Eventora Copilot',
+        description: String(action.payload.notes || 'Added via Eventora Copilot'),
       });
-      setActionToast(`Task added to Timeline: "${action.payload.title}"`);
+      setActionToast(`Task added to Timeline: "${String(action.payload.title || 'Task')}"`);
     } else if (action.type === 'add_expense') {
+      const statusVal = String(action.payload.paymentStatus || 'Pending');
+      const paymentStatus: 'Paid' | 'Pending' | 'Advance Paid' =
+        statusVal === 'Paid' || statusVal === 'Advance Paid' ? statusVal : 'Pending';
       addExpense({
-        category: action.payload.category || 'Emergency contingency',
+        category: String(action.payload.category || 'Emergency contingency'),
         amount: Number(action.payload.amount) || 25000,
-        vendorName: action.payload.vendorName || 'Eventora Treasury',
-        paymentStatus: action.payload.paymentStatus || 'Pending',
-        date: action.payload.date || new Date().toISOString().split('T')[0],
-        notes: action.payload.notes || action.payload.title || 'Added via Eventora Copilot',
+        vendorName: String(action.payload.vendorName || 'Eventora Treasury'),
+        paymentStatus,
+        date: String(action.payload.date || new Date().toISOString().split('T')[0]),
+        notes: String(action.payload.notes || action.payload.title || 'Added via Eventora Copilot'),
       });
-      setActionToast(`Expense logged in Budget: "${action.payload.title || action.payload.category}"`);
+      setActionToast(`Expense logged in Budget: "${String(action.payload.title || action.payload.category)}"`);
     } else if (action.type === 'add_vendor') {
       const quoted = Number(action.payload.estimatedCost) || 50000;
       addVendor({
-        businessName: action.payload.name || 'Recommended Specialist Vendor',
-        category: action.payload.category || 'Decoration',
+        businessName: String(action.payload.name || 'Recommended Specialist Vendor'),
+        category: String(action.payload.category || 'Decoration'),
         contactInfo: {
-          phone: action.payload.phone || '+91 98200 11223',
-          email: action.payload.email || 'contact@vendor.in',
+          phone: String(action.payload.phone || '+91 98200 11223'),
+          email: String(action.payload.email || 'contact@vendor.in'),
         },
         quotedAmount: quoted,
         advancePayment: 0,
         remainingPayment: quoted,
         bookingStatus: 'Evaluating',
-        contractNotes: action.payload.notes || 'Shortlisted via Eventora Copilot',
+        contractNotes: String(action.payload.notes || 'Shortlisted via Eventora Copilot'),
       });
-      setActionToast(`Vendor added to Registry: "${action.payload.name}"`);
+      setActionToast(`Vendor added to Registry: "${String(action.payload.name || 'Vendor')}"`);
     } else if (action.type === 'add_schedule') {
       const existingSchedule = activeEvent.plan?.timeline?.eventDaySchedule || [];
       updateEventDaySchedule(activeEvent.id, [
         ...existingSchedule,
         {
-          time: action.payload.time || '15:30 - 16:00',
-          activity: action.payload.activity || 'Copilot Operational Cue',
-          notes: action.payload.notes || 'Added via Eventora Copilot',
+          time: String(action.payload.time || '15:30 - 16:00'),
+          activity: String(action.payload.activity || 'Copilot Operational Cue'),
+          notes: String(action.payload.notes || 'Added via Eventora Copilot'),
         },
       ]);
-      setActionToast(`Schedule cue added to Master Run-sheet: "${action.payload.activity}"`);
+      setActionToast(`Schedule cue added to Master Run-sheet: "${String(action.payload.activity || 'Cue')}"`);
     }
 
     setTimeout(() => setActionToast(null), 3500);
@@ -587,8 +560,7 @@ export const EventEaseCopilotView: React.FC = () => {
       } else {
         throw new Error(data.message || 'Copilot failed');
       }
-    } catch (err: any) {
-      console.error('Copilot request failed:', err);
+    } catch {
       const fallbackActions = deriveContextualActions(textToSend, activeEvent);
       const fallbackMsg: CopilotChatMessage = {
         id: `asst_${Date.now()}`,
@@ -613,25 +585,6 @@ export const EventEaseCopilotView: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleExportChat = () => {
-    const lines = [
-      `# Eventora Copilot Transcript — ${activeEvent.name}`,
-      `Event Date: ${activeEvent.startDate} | City: ${activeEvent.city} | Budget: ${formatCurrency(activeEvent.totalBudget, activeEvent.currency)}`,
-      `Session: ${currentThread.title}`,
-      `----------------------------------------\n`,
-      ...messages.map(
-        (m) => `[${m.timestamp}] ${m.role === 'user' ? 'YOU' : 'EVENTORA COPILOT'}:\n${m.content}\n`
-      ),
-    ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${activeEvent.name.toLowerCase().replace(/\s+/g, '-')}-copilot-chat.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleSpeakMessage = (msg: CopilotChatMessage) => {
@@ -724,26 +677,6 @@ export const EventEaseCopilotView: React.FC = () => {
               </button>
             );
           })}
-        </div>
-
-        <div className="flex items-center gap-2 ml-auto">
-          <button
-            type="button"
-            onClick={() => handleCreateNewThread()}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Chat</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleExportChat}
-            aria-label="Export chat transcript"
-            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Export</span>
-          </button>
         </div>
       </div>
 

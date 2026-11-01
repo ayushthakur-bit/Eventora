@@ -33,28 +33,43 @@ const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 3000;
 app.disable('x-powered-by');
 
 // Security headers middleware (compatible with AI Studio preview iframe)
-app.use((_req: Request, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader(
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=(), payment=()'
   );
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  }
   next();
 });
 
 // Bounded JSON body parser (1MB max to prevent payload DoS)
 app.use(express.json({ limit: '1mb' }));
 
-// Lightweight per-IP sliding window rate limiter for /api/ai/* routes
+// Lightweight per-IP sliding window rate limiter for /api/ai/* routes with bounded map eviction
 const rateLimitWindowMs = 60_000;
 const maxRequestsPerWindow = 60;
+const maxTrackedIps = 2000;
 const ipRequestCounts = new Map<string, { count: number; resetAt: number }>();
 
 app.use('/api/ai', (req: Request, res: Response, next: NextFunction) => {
   const clientIp = req.ip || req.socket.remoteAddress || 'local';
   const now = Date.now();
+
+  if (ipRequestCounts.size > maxTrackedIps) {
+    for (const [ip, record] of ipRequestCounts.entries()) {
+      if (now > record.resetAt) {
+        ipRequestCounts.delete(ip);
+      }
+    }
+  }
+
   const entry = ipRequestCounts.get(clientIp);
 
   if (!entry || now > entry.resetAt) {
@@ -63,6 +78,7 @@ app.use('/api/ai', (req: Request, res: Response, next: NextFunction) => {
   }
 
   if (entry.count >= maxRequestsPerWindow) {
+    res.setHeader('Retry-After', String(Math.ceil((entry.resetAt - now) / 1000)));
     return res.status(429).json({
       error: 'Too many AI requests. Please wait a moment and try again.',
     });

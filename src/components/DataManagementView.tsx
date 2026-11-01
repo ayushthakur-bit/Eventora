@@ -2,11 +2,9 @@ import React, { useState, useMemo, useRef } from 'react';
 import {
   Database,
   Search,
-  Filter,
   Plus,
   Download,
   Upload,
-  RefreshCw,
   Trash2,
   Edit3,
   Copy,
@@ -21,18 +19,13 @@ import {
   Sparkles,
   ArrowRight,
   ShieldAlert,
-  SlidersHorizontal,
-  ChevronDown,
   Layers,
   Check,
   X,
-  FileText,
   Clock,
   Store,
-  Tag,
   Archive,
   Save,
-  HelpCircle,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import {
@@ -41,17 +34,13 @@ import {
   ThemeType,
   BudgetFlexibility,
   VenueType,
-  CurrencyCode,
-  BudgetItemAllocation,
-  TimelineScheduleItem,
 } from '../types';
 import { formatCurrency } from '../utils/budgetCalculations';
 import {
   auditEventData,
   filterEvents,
   exportEventsToCsv,
-  validateDatabaseBackup,
-  DataAuditIssue,
+  safeJsonParse,
 } from '../utils/data-management';
 
 interface LocalSnapshot {
@@ -62,6 +51,9 @@ interface LocalSnapshot {
   data: string;
 }
 
+type DataSortBy = 'date-desc' | 'date-asc' | 'budget-desc' | 'budget-asc' | 'guests-desc';
+type EditorSubTab = 'core' | 'budget' | 'schedule' | 'vendors' | 'guests' | 'raw';
+
 export const DataManagementView: React.FC = () => {
   const {
     events,
@@ -71,11 +63,9 @@ export const DataManagementView: React.FC = () => {
     allExpenses,
     allVendors,
     allGuests,
-    createEvent,
     updateEvent,
     deleteEvent,
     duplicateEvent,
-    archiveEvent,
     bulkDeleteEvents,
     bulkUpdateEventStatus,
     importFullDatabase,
@@ -99,7 +89,7 @@ export const DataManagementView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'budget-desc' | 'budget-asc' | 'guests-desc'>('date-desc');
+  const [sortBy, setSortBy] = useState<DataSortBy>('date-desc');
 
   // Batch Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -152,7 +142,6 @@ export const DataManagementView: React.FC = () => {
   // Compute database metrics
   const totalBudgetSum = events.reduce((acc, ev) => acc + (ev.totalBudget || 0), 0);
   const totalExpenseSum = allExpenses.reduce((acc, exp) => acc + (exp.amount || 0), 0);
-  const totalGuestsCount = events.reduce((acc, ev) => acc + (ev.guestCount || 0), 0);
   const healthyCount = events.length - new Set(auditIssues.map((i) => i.eventId)).size;
   const healthPercent = events.length > 0 ? Math.round((healthyCount / events.length) * 100) : 100;
 
@@ -160,7 +149,7 @@ export const DataManagementView: React.FC = () => {
   const focusedEvent = events.find((e) => e.id === selectedEventId) || events[0] || null;
 
   // Granular editor sub-tabs: 'core' | 'budget' | 'schedule' | 'vendors' | 'guests' | 'raw'
-  const [editorSubTab, setEditorSubTab] = useState<'core' | 'budget' | 'schedule' | 'vendors' | 'guests' | 'raw'>('core');
+  const [editorSubTab, setEditorSubTab] = useState<EditorSubTab>('core');
 
   // Core details form state for focused event
   const [coreForm, setCoreForm] = useState<Partial<EventData>>({});
@@ -244,6 +233,7 @@ export const DataManagementView: React.FC = () => {
     link.setAttribute('href', url);
     link.setAttribute('download', `eventease_database_${Date.now()}.csv`);
     link.click();
+    URL.revokeObjectURL(url);
     showNotice('Exported event database to CSV spreadsheet.');
   };
 
@@ -255,6 +245,7 @@ export const DataManagementView: React.FC = () => {
     a.href = url;
     a.download = `eventease_backup_complete_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
+    URL.revokeObjectURL(url);
     showNotice('Complete database backup saved to your device.');
   };
 
@@ -266,15 +257,20 @@ export const DataManagementView: React.FC = () => {
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
-        const parsed = JSON.parse(text);
+        const parsed = safeJsonParse<Record<string, unknown>>(text);
+        if (!parsed) {
+          showNotice('Backup Import Error: Invalid JSON file.');
+          return;
+        }
         const res = importFullDatabase(parsed);
         if (res.success) {
           showNotice(`Successfully restored ${res.count} events and operational data!`);
         } else {
-          alert(`Backup Import Error: ${res.error}`);
+          showNotice(`Backup Import Error: ${res.error}`);
         }
-      } catch (err: any) {
-        alert(`Failed to parse JSON file: ${err.message}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        showNotice(`Failed to parse JSON file: ${msg}`);
       }
     };
     reader.readAsText(file);
@@ -301,13 +297,18 @@ export const DataManagementView: React.FC = () => {
   const handleRestoreSnapshot = (snap: LocalSnapshot) => {
     if (window.confirm(`Restore state to "${snap.name}"? Current unsaved modifications will be replaced.`)) {
       try {
-        const parsed = JSON.parse(snap.data);
+        const parsed = safeJsonParse<Record<string, unknown>>(snap.data);
+        if (!parsed) {
+          showNotice('Error restoring snapshot: corrupted data.');
+          return;
+        }
         const res = importFullDatabase(parsed);
         if (res.success) {
           showNotice(`Database restored to snapshot "${snap.name}".`);
         }
-      } catch (e: any) {
-        alert(`Error restoring snapshot: ${e.message}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        showNotice(`Error restoring snapshot: ${msg}`);
       }
     }
   };
@@ -436,6 +437,7 @@ export const DataManagementView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="file"
+            aria-label="Upload JSON database backup file"
             ref={fileInputRef}
             onChange={handleFileUpload}
             accept=".json"
@@ -630,6 +632,8 @@ export const DataManagementView: React.FC = () => {
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="data-search-events"
+                  aria-label="Search events by name, city, venue or type"
                   type="text"
                   placeholder="Search events by name, city, venue or type..."
                   value={searchQuery}
@@ -638,6 +642,8 @@ export const DataManagementView: React.FC = () => {
                 />
                 {searchQuery && (
                   <button
+                    type="button"
+                    aria-label="Clear search query"
                     onClick={() => setSearchQuery('')}
                     className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
                   >
@@ -648,6 +654,8 @@ export const DataManagementView: React.FC = () => {
 
               {/* Event Type Filter */}
               <select
+                id="data-filter-type"
+                aria-label="Filter by event type"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="px-3 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
@@ -663,6 +671,8 @@ export const DataManagementView: React.FC = () => {
 
               {/* Status Filter */}
               <select
+                id="data-filter-status"
+                aria-label="Filter by event status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
@@ -676,8 +686,10 @@ export const DataManagementView: React.FC = () => {
 
               {/* Sort By */}
               <select
+                id="data-sort-events"
+                aria-label="Sort events by"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as DataSortBy)}
                 className="px-3 py-2 rounded-xl text-xs sm:text-sm border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
                 <option value="date-desc">Date (Newest First)</option>
@@ -760,6 +772,7 @@ export const DataManagementView: React.FC = () => {
                   <th className="py-3.5 px-4 w-10">
                     <input
                       type="checkbox"
+                      aria-label="Select all events"
                       checked={
                         filteredEvents.length > 0 &&
                         selectedIds.length === filteredEvents.length
@@ -796,6 +809,7 @@ export const DataManagementView: React.FC = () => {
                       <td className="py-3.5 px-4">
                         <input
                           type="checkbox"
+                          aria-label={`Select event ${evt.name}`}
                           checked={isSelected}
                           onChange={() => handleToggleSelect(evt.id)}
                           className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
@@ -998,10 +1012,12 @@ export const DataManagementView: React.FC = () => {
           {/* Top Event Selector */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <label htmlFor="data-select-event-record" className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Editing Record:
-              </span>
+              </label>
               <select
+                id="data-select-event-record"
+                aria-label="Editing Record"
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
                 className="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer max-w-sm truncate"
@@ -1044,17 +1060,17 @@ export const DataManagementView: React.FC = () => {
             <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
               {/* Sub Navigation */}
               <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-800 p-2 gap-1 bg-slate-50/50 dark:bg-slate-850">
-                {[
-                  { id: 'core', label: '1. Identity & Logistics', icon: Building },
-                  { id: 'budget', label: '2. Budget Line Allocations', icon: DollarSign },
-                  { id: 'schedule', label: '3. Master Timeline Run-sheet', icon: Clock },
-                  { id: 'vendors', label: '4. Linked Vendors', icon: Store },
-                  { id: 'guests', label: '5. Guest Roster', icon: Users },
-                  { id: 'raw', label: '6. Direct Raw JSON Editor', icon: Code },
-                ].map((st) => (
+                {([
+                  { id: 'core' as EditorSubTab, label: '1. Identity & Logistics', icon: Building },
+                  { id: 'budget' as EditorSubTab, label: '2. Budget Line Allocations', icon: DollarSign },
+                  { id: 'schedule' as EditorSubTab, label: '3. Master Timeline Run-sheet', icon: Clock },
+                  { id: 'vendors' as EditorSubTab, label: '4. Linked Vendors', icon: Store },
+                  { id: 'guests' as EditorSubTab, label: '5. Guest Roster', icon: Users },
+                  { id: 'raw' as EditorSubTab, label: '6. Direct Raw JSON Editor', icon: Code },
+                ]).map((st) => (
                   <button
                     key={st.id}
-                    onClick={() => setEditorSubTab(st.id as any)}
+                    onClick={() => setEditorSubTab(st.id)}
                     className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                       editorSubTab === st.id
                         ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-2xs'
@@ -1073,10 +1089,12 @@ export const DataManagementView: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {/* Event Name */}
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-event-name" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Event Title / Celebration Name
                       </label>
                       <input
+                        id="core-event-name"
+                        aria-label="Event Title / Celebration Name"
                         type="text"
                         required
                         value={coreForm.name || ''}
@@ -1087,12 +1105,14 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Status */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-event-status" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Operational Status
                       </label>
                       <select
+                        id="core-event-status"
+                        aria-label="Operational Status"
                         value={coreForm.status || 'Planning'}
-                        onChange={(e) => setCoreForm({ ...coreForm, status: e.target.value as any })}
+                        onChange={(e) => setCoreForm({ ...coreForm, status: e.target.value as EventData['status'] })}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       >
                         <option value="Planning">Planning</option>
@@ -1104,12 +1124,14 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Event Type */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-event-type" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Event Type
                       </label>
                       <select
+                        id="core-event-type"
+                        aria-label="Event Type"
                         value={coreForm.eventType || 'Wedding'}
-                        onChange={(e) => setCoreForm({ ...coreForm, eventType: e.target.value as any })}
+                        onChange={(e) => setCoreForm({ ...coreForm, eventType: e.target.value as EventType })}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       >
                         <option value="Wedding">Wedding</option>
@@ -1124,12 +1146,14 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Theme */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-design-theme" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Design Theme
                       </label>
                       <select
+                        id="core-design-theme"
+                        aria-label="Design Theme"
                         value={coreForm.theme || 'Elegant'}
-                        onChange={(e) => setCoreForm({ ...coreForm, theme: e.target.value as any })}
+                        onChange={(e) => setCoreForm({ ...coreForm, theme: e.target.value as ThemeType })}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       >
                         <option value="Elegant">Elegant</option>
@@ -1144,10 +1168,12 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Total Budget */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-total-budget" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Total Budget Limit ({coreForm.currency || 'INR'})
                       </label>
                       <input
+                        id="core-total-budget"
+                        aria-label="Total Budget Limit"
                         type="number"
                         min="0"
                         step="1000"
@@ -1159,10 +1185,12 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Start Date */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-start-date" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Start Date
                       </label>
                       <input
+                        id="core-start-date"
+                        aria-label="Start Date"
                         type="date"
                         required
                         value={coreForm.startDate || ''}
@@ -1173,10 +1201,12 @@ export const DataManagementView: React.FC = () => {
 
                     {/* End Date */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-end-date" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         End Date (Optional)
                       </label>
                       <input
+                        id="core-end-date"
+                        aria-label="End Date"
                         type="date"
                         value={coreForm.endDate || ''}
                         onChange={(e) => setCoreForm({ ...coreForm, endDate: e.target.value })}
@@ -1186,10 +1216,12 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Guest Count */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-guest-count" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Target Guest Count
                       </label>
                       <input
+                        id="core-guest-count"
+                        aria-label="Target Guest Count"
                         type="number"
                         min="1"
                         value={coreForm.guestCount || 100}
@@ -1200,10 +1232,12 @@ export const DataManagementView: React.FC = () => {
 
                     {/* City */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-city" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         City / Region
                       </label>
                       <input
+                        id="core-city"
+                        aria-label="City / Region"
                         type="text"
                         value={coreForm.city || ''}
                         onChange={(e) => setCoreForm({ ...coreForm, city: e.target.value })}
@@ -1213,10 +1247,12 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Venue Preference */}
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-venue-name" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Venue Name / Address
                       </label>
                       <input
+                        id="core-venue-name"
+                        aria-label="Venue Name / Address"
                         type="text"
                         placeholder="e.g. Taj Lake Palace, Udaipur"
                         value={coreForm.venuePreference || ''}
@@ -1227,12 +1263,14 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Venue Type */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-venue-type" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Venue Type
                       </label>
                       <select
+                        id="core-venue-type"
+                        aria-label="Venue Type"
                         value={coreForm.venueType || 'Mixed'}
-                        onChange={(e) => setCoreForm({ ...coreForm, venueType: e.target.value as any })}
+                        onChange={(e) => setCoreForm({ ...coreForm, venueType: e.target.value as VenueType })}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       >
                         <option value="Indoor">Indoor (Banquet/Auditorium)</option>
@@ -1243,12 +1281,14 @@ export const DataManagementView: React.FC = () => {
 
                     {/* Flexibility */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <label htmlFor="core-budget-flexibility" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Budget Flexibility
                       </label>
                       <select
+                        id="core-budget-flexibility"
+                        aria-label="Budget Flexibility"
                         value={coreForm.budgetFlexibility || 'Moderate'}
-                        onChange={(e) => setCoreForm({ ...coreForm, budgetFlexibility: e.target.value as any })}
+                        onChange={(e) => setCoreForm({ ...coreForm, budgetFlexibility: e.target.value as BudgetFlexibility })}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       >
                         <option value="Strict">Strict (Zero tolerance for overruns)</option>
@@ -1355,6 +1395,8 @@ export const DataManagementView: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <input
+                        id="alloc-category-name"
+                        aria-label="Category Name"
                         type="text"
                         placeholder="Category Name (e.g., Drone Videography)"
                         value={newAllocCategory}
@@ -1362,6 +1404,8 @@ export const DataManagementView: React.FC = () => {
                         className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                       />
                       <input
+                        id="alloc-amount"
+                        aria-label="Allocated Amount"
                         type="number"
                         placeholder="Amount (e.g. 50000)"
                         value={newAllocAmount || ''}
@@ -1369,6 +1413,8 @@ export const DataManagementView: React.FC = () => {
                         className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
                       />
                       <input
+                        id="alloc-reason"
+                        aria-label="Allocation Reason or Details"
                         type="text"
                         placeholder="Reason / Details"
                         value={newAllocReason}
@@ -1424,6 +1470,8 @@ export const DataManagementView: React.FC = () => {
                         </div>
 
                         <button
+                          type="button"
+                          aria-label={`Remove schedule item ${item.activity}`}
                           onClick={() => handleDeleteScheduleItem(idx)}
                           className="p-1 text-slate-400 hover:text-rose-600"
                         >
@@ -1447,6 +1495,8 @@ export const DataManagementView: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <input
+                        id="sched-time-slot"
+                        aria-label="Schedule Time Slot"
                         type="text"
                         placeholder="Time (e.g. 17:00 - 18:30)"
                         value={newSchedTime}
@@ -1454,6 +1504,8 @@ export const DataManagementView: React.FC = () => {
                         className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
                       />
                       <input
+                        id="sched-activity-name"
+                        aria-label="Activity or Milestone Name"
                         type="text"
                         placeholder="Activity / Milestone Name"
                         value={newSchedActivity}
@@ -1461,6 +1513,8 @@ export const DataManagementView: React.FC = () => {
                         className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                       />
                       <input
+                        id="sched-coordinator-notes"
+                        aria-label="Coordinator Notes and Stage"
                         type="text"
                         placeholder="Coordinator Notes & Stage"
                         value={newSchedNotes}
@@ -1781,6 +1835,8 @@ export const DataManagementView: React.FC = () => {
             {/* Create Snapshot Input */}
             <div className="flex gap-2 pt-2">
               <input
+                id="snapshot-label-input"
+                aria-label="Snapshot Label"
                 type="text"
                 placeholder="Snapshot Label (e.g., Pre-Vendor Finalization)"
                 value={newSnapshotName}
@@ -1788,6 +1844,7 @@ export const DataManagementView: React.FC = () => {
                 className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
               />
               <button
+                type="button"
                 onClick={handleCreateSnapshot}
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer shadow-xs"
               >
@@ -1813,12 +1870,15 @@ export const DataManagementView: React.FC = () => {
 
                   <div className="flex items-center gap-1.5">
                     <button
+                      type="button"
                       onClick={() => handleRestoreSnapshot(snap)}
                       className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-semibold hover:bg-indigo-100 cursor-pointer"
                     >
                       Rollback
                     </button>
                     <button
+                      type="button"
+                      aria-label={`Delete snapshot ${snap.name}`}
                       onClick={() => handleDeleteSnapshot(snap.id)}
                       className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
                     >
@@ -1952,7 +2012,12 @@ export const DataManagementView: React.FC = () => {
       {/* RAW JSON LIVE INSPECTOR & EDITOR MODAL */}
       {/* ============================================================== */}
       {jsonModalEventId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Live Raw JSON Editor"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200"
+        >
           <div className="relative w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2">
@@ -1968,6 +2033,8 @@ export const DataManagementView: React.FC = () => {
               </div>
 
               <button
+                type="button"
+                aria-label="Close JSON editor"
                 onClick={() => setJsonModalEventId(null)}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
@@ -1991,6 +2058,8 @@ export const DataManagementView: React.FC = () => {
 
             <div className="flex-1 my-4 min-h-[300px]">
               <textarea
+                id="raw-json-textarea"
+                aria-label="Event Raw JSON Content"
                 value={rawJsonText}
                 onChange={(e) => {
                   setRawJsonText(e.target.value);
@@ -2007,8 +2076,9 @@ export const DataManagementView: React.FC = () => {
                   try {
                     const formatted = JSON.stringify(JSON.parse(rawJsonText), null, 2);
                     setRawJsonText(formatted);
-                  } catch (e: any) {
-                    setJsonError(`Invalid JSON: ${e.message}`);
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : 'Syntax error';
+                    setJsonError(`Invalid JSON: ${msg}`);
                   }
                 }}
                 className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"

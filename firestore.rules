@@ -1,30 +1,59 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidPayloadSize() {
+      return request.resource == null || request.resource.data.keys().size() <= 50;
+    }
+
     // User profile isolation
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidPayloadSize();
+      allow delete: if isOwner(userId);
 
       // Event collections and subcollections isolated to the authenticated owner
       match /events/{eventId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidPayloadSize();
+        allow delete: if isOwner(userId);
 
         match /tasks/{taskId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read: if isOwner(userId);
+          allow create, update: if isOwner(userId) && isValidPayloadSize();
+          allow delete: if isOwner(userId);
         }
 
         match /expenses/{expenseId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read: if isOwner(userId);
+          allow create, update: if isOwner(userId) && isValidPayloadSize();
+          allow delete: if isOwner(userId);
         }
 
         match /vendors/{vendorId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read: if isOwner(userId);
+          allow create, update: if isOwner(userId) && isValidPayloadSize();
+          allow delete: if isOwner(userId);
         }
 
         match /guests/{guestId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read: if isOwner(userId);
+          allow create, update: if isOwner(userId) && isValidPayloadSize();
+          allow delete: if isOwner(userId);
         }
       }
+    }
+
+    // Explicit default deny for all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

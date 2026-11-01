@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Check, ChevronRight, User, ShieldCheck, ArrowRight } from 'lucide-react';
+import { ChevronRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface SocialAuthProps {
@@ -85,7 +85,7 @@ export const SocialAuth: React.FC<SocialAuthProps> = ({ mode, onSuccess, onError
           <div className="flex items-center gap-3 relative z-10">
             {/* Authentic Google "G" SVG */}
             <div className="w-6 h-6 rounded-lg bg-white p-1 shadow-2xs flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -170,6 +170,8 @@ export const SocialAuth: React.FC<SocialAuthProps> = ({ mode, onSuccess, onError
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input
+                id="google-custom-name"
+                aria-label="Google Account Full Name"
                 type="text"
                 placeholder="Full Name"
                 value={customName}
@@ -177,6 +179,8 @@ export const SocialAuth: React.FC<SocialAuthProps> = ({ mode, onSuccess, onError
                 className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               />
               <input
+                id="google-custom-email"
+                aria-label="Google Account Email"
                 type="email"
                 placeholder="name@gmail.com"
                 value={customEmail}

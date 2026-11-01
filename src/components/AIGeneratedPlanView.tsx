@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import {
   Sparkles,
-  PieChart as PieChartIcon,
   Calendar,
   ShieldAlert,
   Lightbulb,
   CheckCircle2,
   DollarSign,
   AlertTriangle,
-  ArrowRight,
   Download,
   Check,
 } from 'lucide-react';
@@ -16,9 +14,11 @@ import { useEvents } from '../context/EventContext';
 import { formatCurrency } from '../utils/budgetCalculations';
 import { exportEventToPdf } from '../utils/pdfExport';
 
+type PlanTabId = 'overview' | 'budget' | 'timeline' | 'vendors' | 'ideas' | 'risks';
+
 export const AIGeneratedPlanView: React.FC = () => {
   const { activeEvent, tasks, expenses, vendors, guests } = useEvents();
-  const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'timeline' | 'vendors' | 'ideas' | 'risks'>('overview');
+  const [activeTab, setActiveTab] = useState<PlanTabId>('overview');
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -45,7 +45,7 @@ export const AIGeneratedPlanView: React.FC = () => {
     }
   };
 
-  const tabs = [
+  const tabs: Array<{ id: PlanTabId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'overview', label: 'Overview & Concept', icon: Sparkles },
     { id: 'budget', label: 'Budget Allocation', icon: DollarSign },
     { id: 'timeline', label: 'Timeline & Schedule', icon: Calendar },
@@ -104,7 +104,7 @@ export const AIGeneratedPlanView: React.FC = () => {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl transition-all whitespace-nowrap border-b-2 ${
                 isActive
                   ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30'

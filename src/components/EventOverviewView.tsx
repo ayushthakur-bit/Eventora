@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Calendar,
   MapPin,
   Users,
   Wallet,
-  Download,
-  GitBranch,
   Sparkles,
   ArrowRight,
-  Check,
   SlidersHorizontal,
   Palette,
   Utensils,
@@ -17,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import { formatCurrency, calculateBudgetUtilization } from '../utils/budgetCalculations';
-import { exportEventToPdf } from '../utils/pdfExport';
 
 interface EventOverviewViewProps {
   onNavigate: (view: string) => void;
@@ -26,7 +22,6 @@ interface EventOverviewViewProps {
 
 export const EventOverviewView: React.FC<EventOverviewViewProps> = ({ onNavigate, onOpenControlModal }) => {
   const { activeEvent, tasks, expenses } = useEvents();
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   if (!activeEvent) {
     return (
@@ -47,14 +42,6 @@ export const EventOverviewView: React.FC<EventOverviewViewProps> = ({ onNavigate
   const utilization = calculateBudgetUtilization(totalSpent, activeEvent.totalBudget);
   const completedTasks = tasks.filter((t) => t.status === 'Completed').length;
   const taskProgress = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
-
-  const handleExportPdf = () => {
-    const success = exportEventToPdf(activeEvent, tasks, expenses);
-    if (success) {
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 3000);
-    }
-  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -103,31 +90,6 @@ export const EventOverviewView: React.FC<EventOverviewViewProps> = ({ onNavigate
             >
               <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
               <span>Control Event Details</span>
-            </button>
-
-            <button
-              onClick={() => onNavigate('what-if')}
-              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600 text-white shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-            >
-              <GitBranch className="w-4 h-4" />
-              <span>What-If Simulator</span>
-            </button>
-
-            <button
-              onClick={handleExportPdf}
-              className="px-4 py-2.5 rounded-xl font-semibold text-xs bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-2"
-            >
-              {downloadSuccess ? (
-                <>
-                  <Check className="w-4 h-4 text-emerald-400" />
-                  <span>PDF Downloaded!</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  <span>Export Blueprint PDF</span>
-                </>
-              )}
             </button>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EventProvider, useEvents } from './context/EventContext';
 import { Navbar } from './components/Navbar';
@@ -16,11 +16,9 @@ import { EventEaseCopilotView } from './components/EventEaseCopilotView';
 import { InvitationStudioView } from './components/InvitationStudioView';
 import { ProfileSettingsView } from './components/ProfileSettingsView';
 import { CreateEventWizard } from './components/CreateEventWizard';
-import { AuthModal } from './components/AuthModal';
 import { AuthPage } from './components/auth/AuthPage';
 import { DataManagementView } from './components/DataManagementView';
 import { EventDetailsControlModal } from './components/EventDetailsControlModal';
-import { FloatingCopilotWidget } from './components/FloatingCopilotWidget';
 import { EventData } from './types';
 import { Menu, X, ArrowLeft } from 'lucide-react';
 
@@ -34,7 +32,6 @@ function AppContent() {
   );
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCreateWizardOpen, setIsCreateWizardOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isControlModalOpen, setIsControlModalOpen] = useState(false);
   const [controlEventId, setControlEventId] = useState<string | null>(null);
 
@@ -280,24 +277,11 @@ function AppContent() {
         onEventCreated={handleEventCreated}
       />
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
-
       <EventDetailsControlModal
         isOpen={isControlModalOpen}
         onClose={() => setIsControlModalOpen(false)}
         eventId={controlEventId}
       />
-
-      {/* Global Floating Copilot Chatbot Launcher (only when signed in) */}
-      {isAuthenticated && (
-        <FloatingCopilotWidget
-          currentView={currentView}
-          onOpenFullCopilot={() => setCurrentView('copilot')}
-        />
-      )}
     </div>
   );
 }

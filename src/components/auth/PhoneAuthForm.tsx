@@ -10,7 +10,6 @@ import {
   RefreshCw,
   Edit2,
   MessageSquare,
-  Lock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -399,6 +398,8 @@ export const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({
               {otpDigits.map((digit, idx) => (
                 <input
                   key={idx}
+                  id={`otp-digit-${idx + 1}`}
+                  aria-label={`Digit ${idx + 1}`}
                   ref={(el) => {
                     digitInputRefs.current[idx] = el;
                   }}
@@ -409,7 +410,6 @@ export const PhoneAuthForm: React.FC<PhoneAuthFormProps> = ({
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                   className="w-11 h-13 sm:w-12 sm:h-14 text-center font-mono text-xl font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs transition-all"
-                  aria-label={`Digit ${idx + 1}`}
                 />
               ))}
             </div>

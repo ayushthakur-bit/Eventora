@@ -2,16 +2,12 @@ import React, { useState } from 'react';
 import {
   User,
   Mail,
-  Camera,
   Save,
   CheckCircle2,
   Database,
   ShieldCheck,
-  AlertCircle,
-  Coins,
   Sun,
   Moon,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CurrencyCode } from '../types';
@@ -25,7 +21,7 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
   darkMode,
   setDarkMode,
 }) => {
-  const { currentUser, updateUserProfile, isFirebaseConfigured } = useAuth();
+  const { currentUser, updateUserProfile } = useAuth();
 
   const [name, setName] = useState(currentUser?.name || '');
   const [defaultCurrency, setDefaultCurrency] = useState<CurrencyCode>(
@@ -101,11 +97,12 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                     key={i}
                     type="button"
                     onClick={() => setAvatarUrl(url)}
+                    aria-label={`Select avatar option ${i + 1}`}
                     className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all ${
                       avatarUrl === url ? 'border-indigo-600 scale-110 shadow-sm' : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={url} alt="Option" className="w-full h-full object-cover" />
+                    <img src={url} alt={`Avatar option ${i + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -114,12 +111,14 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="profile-full-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Full Name
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
+                  id="profile-full-name"
+                  aria-label="Full Name"
                   type="text"
                   required
                   value={name}
@@ -130,12 +129,14 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="profile-registered-email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Registered Email (Read-Only)
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
+                  id="profile-registered-email"
+                  aria-label="Registered Email"
                   type="email"
                   disabled
                   value={currentUser?.email || 'user@example.com'}
@@ -154,10 +155,12 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label htmlFor="profile-default-currency" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Default Currency
               </label>
               <select
+                id="profile-default-currency"
+                aria-label="Default Currency"
                 value={defaultCurrency}
                 onChange={(e) => setDefaultCurrency(e.target.value as CurrencyCode)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"

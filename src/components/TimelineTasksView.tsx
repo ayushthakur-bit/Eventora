@@ -1,13 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import {
-  CheckSquare,
   PlusCircle,
   Search,
-  Filter,
   Calendar,
   Clock,
-  AlertCircle,
-  CheckCircle2,
   Trash2,
   Edit2,
   X,
@@ -37,14 +33,6 @@ export const TimelineTasksView: React.FC = () => {
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!activeEvent) {
-    return (
-      <div className="p-8 text-center text-slate-500">
-        No active event selected.
-      </div>
-    );
-  }
-
   // Filtered Tasks
   const filteredTasks = useMemo(() => {
     return tasks
@@ -66,6 +54,14 @@ export const TimelineTasksView: React.FC = () => {
       .filter((t) => t.status !== 'Completed' && t.dueDate >= today)
       .slice(0, 4);
   }, [tasks]);
+
+  if (!activeEvent) {
+    return (
+      <div className="p-8 text-center text-slate-500">
+        No active event selected.
+      </div>
+    );
+  }
 
   const handleOpenAdd = () => {
     setEditingTask(null);
@@ -181,6 +177,8 @@ export const TimelineTasksView: React.FC = () => {
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
+                  id="tasks-search-input"
+                  aria-label="Search tasks"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -191,6 +189,8 @@ export const TimelineTasksView: React.FC = () => {
 
               <div className="flex items-center gap-2 text-xs">
                 <select
+                  id="tasks-filter-priority"
+                  aria-label="Filter tasks by priority"
                   value={filterPriority}
                   onChange={(e) => setFilterPriority(e.target.value)}
                   className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
@@ -202,6 +202,8 @@ export const TimelineTasksView: React.FC = () => {
                 </select>
 
                 <select
+                  id="tasks-filter-status"
+                  aria-label="Filter tasks by status"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
@@ -377,13 +379,20 @@ export const TimelineTasksView: React.FC = () => {
 
       {/* Add / Edit Task Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingTask ? 'Edit Task' : 'Add New Task'}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+        >
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {editingTask ? 'Edit Task' : 'Add New Task'}
               </h3>
               <button
+                type="button"
+                aria-label="Close task modal"
                 onClick={() => setIsModalOpen(false)}
                 className="p-1 rounded text-slate-400 hover:text-slate-600"
               >
@@ -399,10 +408,12 @@ export const TimelineTasksView: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="task-title-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Task Title <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="task-title-input"
+                  aria-label="Task Title"
                   type="text"
                   required
                   value={title}
@@ -413,10 +424,12 @@ export const TimelineTasksView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="task-description-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Description
                 </label>
                 <textarea
+                  id="task-description-input"
+                  aria-label="Task Description"
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -427,10 +440,12 @@ export const TimelineTasksView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="task-due-date-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Due Date <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="task-due-date-input"
+                    aria-label="Task Due Date"
                     type="date"
                     required
                     value={dueDate}
@@ -440,10 +455,12 @@ export const TimelineTasksView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="task-priority-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Priority
                   </label>
                   <select
+                    id="task-priority-select"
+                    aria-label="Task Priority"
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as PriorityLevel)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -457,10 +474,12 @@ export const TimelineTasksView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="task-status-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Status
                   </label>
                   <select
+                    id="task-status-select"
+                    aria-label="Task Status"
                     value={status}
                     onChange={(e) => setStatus(e.target.value as TaskStatus)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -472,10 +491,12 @@ export const TimelineTasksView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="task-category-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Category
                   </label>
                   <input
+                    id="task-category-input"
+                    aria-label="Task Category"
                     type="text"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}

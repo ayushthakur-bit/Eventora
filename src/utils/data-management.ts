@@ -196,6 +196,104 @@ export function filterEvents(
 }
 
 /**
+ * Sanitizes a CSV cell value to prevent CSV Formula Injection (DDE / spreadsheet execution)
+ * and properly escapes embedded double quotes.
+ */
+export function sanitizeCsvCell(value: string | number | undefined | null): string {
+  if (value === undefined || value === null) return '""';
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value) : '0';
+  }
+  const trimmed = String(value);
+  const formulaSafe = /^[=+\-@\t\r]/.test(trimmed) ? `'${trimmed}` : trimmed;
+  return `"${formulaSafe.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Safely parses untrusted JSON while stripping dangerous prototype-pollution keys
+ */
+export function safeJsonParse<T = unknown>(
+  raw: string
+): { ok: true; data: T } | { ok: false; error: string } {
+  if (!raw || typeof raw !== 'string') {
+    return { ok: false, error: 'JSON input must be a non-empty string.' };
+  }
+  try {
+    const parsed = JSON.parse(raw, (key, value) => {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        return undefined;
+      }
+      return value;
+    }) as T;
+    return { ok: true, data: parsed };
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Invalid JSON syntax.',
+    };
+  }
+}
+
+/**
+ * Computes attendee headcount and dietary metrics for a guest roster
+ */
+export function computeGuestMetrics(guests: EventGuest[]): {
+  totalGuests: number;
+  attendingHeads: number;
+  pendingHeads: number;
+  declinedHeads: number;
+  specialDietCount: number;
+} {
+  let attendingHeads = 0;
+  let pendingHeads = 0;
+  let declinedHeads = 0;
+  let specialDietCount = 0;
+
+  guests.forEach((g) => {
+    const heads = Math.max(0, Number(g.attendanceCount) || 0);
+    if (g.rsvpStatus === 'Attending') attendingHeads += heads;
+    else if (g.rsvpStatus === 'Declined') declinedHeads += heads;
+    else pendingHeads += heads;
+
+    if (g.dietaryRequirements && g.dietaryRequirements.trim().length > 0) {
+      specialDietCount += 1;
+    }
+  });
+
+  return {
+    totalGuests: guests.length,
+    attendingHeads,
+    pendingHeads,
+    declinedHeads,
+    specialDietCount,
+  };
+}
+
+/**
+ * Computes financial summary across an event's vendor contracts
+ */
+export function computeVendorFinancialSummary(vendors: EventVendor[]): {
+  totalQuoted: number;
+  totalAdvancePaid: number;
+  remainingBalance: number;
+  bookedCount: number;
+} {
+  const totalQuoted = vendors.reduce((sum, v) => sum + (Number(v.quotedAmount) || 0), 0);
+  const totalAdvancePaid = vendors.reduce((sum, v) => sum + (Number(v.advancePayment) || 0), 0);
+  const remainingBalance = Math.max(0, totalQuoted - totalAdvancePaid);
+  const bookedCount = vendors.filter(
+    (v) => v.bookingStatus === 'Advance Paid' || v.bookingStatus === 'Fully Paid'
+  ).length;
+
+  return {
+    totalQuoted,
+    totalAdvancePaid,
+    remainingBalance,
+    bookedCount,
+  };
+}
+
+/**
  * Export selected events or all events to CSV string
  */
 export function exportEventsToCsv(events: EventData[]): string {
@@ -216,19 +314,19 @@ export function exportEventsToCsv(events: EventData[]): string {
   ];
 
   const rows = events.map((ev) => [
-    `"${ev.id}"`,
-    `"${ev.name.replace(/"/g, '""')}"`,
-    `"${ev.eventType}"`,
-    `"${ev.status}"`,
-    `"${ev.startDate}"`,
-    `"${ev.city.replace(/"/g, '""')}"`,
-    `"${(ev.venuePreference || '').replace(/"/g, '""')}"`,
-    ev.guestCount,
-    ev.totalBudget,
-    `"${ev.currency}"`,
-    `"${ev.budgetFlexibility}"`,
-    `"${ev.theme}"`,
-    `"${ev.createdAt}"`,
+    sanitizeCsvCell(ev.id),
+    sanitizeCsvCell(ev.name),
+    sanitizeCsvCell(ev.eventType),
+    sanitizeCsvCell(ev.status),
+    sanitizeCsvCell(ev.startDate),
+    sanitizeCsvCell(ev.city),
+    sanitizeCsvCell(ev.venuePreference || ''),
+    sanitizeCsvCell(ev.guestCount),
+    sanitizeCsvCell(ev.totalBudget),
+    sanitizeCsvCell(ev.currency),
+    sanitizeCsvCell(ev.budgetFlexibility),
+    sanitizeCsvCell(ev.theme),
+    sanitizeCsvCell(ev.createdAt),
   ]);
 
   return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');

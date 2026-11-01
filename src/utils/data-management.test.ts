@@ -5,8 +5,12 @@ import {
   auditEventData,
   filterEvents,
   exportEventsToCsv,
+  sanitizeCsvCell,
+  safeJsonParse,
+  computeGuestMetrics,
+  computeVendorFinancialSummary,
 } from './data-management';
-import { EventData, EventExpense } from '../types';
+import { EventData, EventExpense, EventGuest, EventVendor } from '../types';
 
 const mockEvent: EventData = {
   id: 'evt_test_1',
@@ -134,4 +138,68 @@ test('exportEventsToCsv creates valid CSV header and rows', () => {
   assert.ok(csv.includes('Event ID,Event Name,Type'));
   assert.ok(csv.includes('Royal Lake Wedding'));
   assert.ok(csv.includes('1500000'));
+});
+
+test('sanitizeCsvCell neutralizes spreadsheet formula injection payloads', () => {
+  assert.equal(sanitizeCsvCell('=cmd|" /C calc"!A0'), '"\'=cmd|"" /C calc""!A0"');
+  assert.equal(sanitizeCsvCell('+SUM(A1:A10)'), '"\'+SUM(A1:A10)"');
+  assert.equal(sanitizeCsvCell('@IMPORTXML()'), '"\'@IMPORTXML()"');
+  assert.equal(sanitizeCsvCell(25000), '25000');
+});
+
+test('safeJsonParse parses valid JSON and strips prototype pollution keys', () => {
+  const malicious = '{"name":"Safe Event","__proto__":{"polluted":true}}';
+  const result = safeJsonParse<Record<string, unknown>>(malicious);
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.data.name, 'Safe Event');
+    assert.equal(({} as Record<string, unknown>).polluted, undefined);
+  }
+  assert.equal(safeJsonParse('{invalid').ok, false);
+});
+
+test('computeGuestMetrics aggregates headcount by RSVP status and dietary needs', () => {
+  const guests: EventGuest[] = [
+    { id: 'g1', eventId: 'e1', name: 'Aarav', rsvpStatus: 'Attending', group: 'Family', attendanceCount: 3, dietaryRequirements: 'Jain' },
+    { id: 'g2', eventId: 'e1', name: 'Meera', rsvpStatus: 'Pending', group: 'Friends', attendanceCount: 2 },
+    { id: 'g3', eventId: 'e1', name: 'Rohan', rsvpStatus: 'Declined', group: 'VIP', attendanceCount: 1 },
+  ];
+  const stats = computeGuestMetrics(guests);
+  assert.equal(stats.totalGuests, 3);
+  assert.equal(stats.attendingHeads, 3);
+  assert.equal(stats.pendingHeads, 2);
+  assert.equal(stats.declinedHeads, 1);
+  assert.equal(stats.specialDietCount, 1);
+});
+
+test('computeVendorFinancialSummary calculates quoted, advance, and remaining balances', () => {
+  const vendors: EventVendor[] = [
+    {
+      id: 'v1',
+      eventId: 'e1',
+      category: 'Venue',
+      businessName: 'Grand Palace',
+      contactInfo: { phone: '9876543210' },
+      quotedAmount: 500000,
+      advancePayment: 200000,
+      remainingPayment: 300000,
+      bookingStatus: 'Fully Paid',
+    },
+    {
+      id: 'v2',
+      eventId: 'e1',
+      category: 'Decor',
+      businessName: 'Bloom Studio',
+      contactInfo: { phone: '9876543211' },
+      quotedAmount: 150000,
+      advancePayment: 50000,
+      remainingPayment: 100000,
+      bookingStatus: 'Evaluating',
+    },
+  ];
+  const summary = computeVendorFinancialSummary(vendors);
+  assert.equal(summary.totalQuoted, 650000);
+  assert.equal(summary.totalAdvancePaid, 250000);
+  assert.equal(summary.remainingBalance, 400000);
+  assert.equal(summary.bookedCount, 1);
 });

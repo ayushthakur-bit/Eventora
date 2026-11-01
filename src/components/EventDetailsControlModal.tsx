@@ -6,17 +6,10 @@ import {
   MapPin,
   Users,
   Wallet,
-  Sparkles,
   Palette,
   CheckCircle2,
-  AlertCircle,
   SlidersHorizontal,
-  Layers,
-  Utensils,
-  Music,
   Shield,
-  Clock,
-  Tag,
   Building,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
@@ -106,6 +99,9 @@ const COMMON_ENTERTAINMENT_OPTIONS = [
   'Celebrity or guest artist performance',
 ];
 
+type ControlTabId = 'basics' | 'budget' | 'style' | 'advanced';
+type EventStatusOption = 'Planning' | 'Confirmed' | 'Archived' | 'Completed';
+
 export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> = ({
   isOpen,
   onClose,
@@ -118,13 +114,13 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
   const targetEvent = events.find((e) => e.id === targetId) || events[0] || null;
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'basics' | 'budget' | 'style' | 'advanced'>('basics');
+  const [activeTab, setActiveTab] = useState<ControlTabId>('basics');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Form State
   const [name, setName] = useState('');
   const [eventType, setEventType] = useState<EventType>('Wedding');
-  const [status, setStatus] = useState<'Planning' | 'Confirmed' | 'Archived' | 'Completed'>('Planning');
+  const [status, setStatus] = useState<EventStatusOption>('Planning');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [city, setCity] = useState('');
@@ -192,7 +188,7 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
     }
   };
 
-  const handleAddCustomColor = (e: React.KeyboardEvent | React.MouseEvent) => {
+  const handleAddCustomColor = () => {
     if (customColor.trim() && !preferredColors.includes(customColor.trim())) {
       setPreferredColors([...preferredColors, customColor.trim()]);
       setCustomColor('');
@@ -266,8 +262,20 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
     }, 900);
   };
 
+  const controlTabs: { id: ControlTabId; label: string; icon: React.FC<{ className?: string }> }[] = [
+    { id: 'basics', label: '1. Event & Venue', icon: Calendar },
+    { id: 'budget', label: '2. Budget & Priorities', icon: Wallet },
+    { id: 'style', label: '3. Theme & Hospitality', icon: Palette },
+    { id: 'advanced', label: '4. Status & Notes', icon: Shield },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Control Event Details"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in overflow-y-auto"
+    >
       <div className="relative w-full max-w-3xl my-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
@@ -291,6 +299,7 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             aria-label="Close modal"
@@ -301,19 +310,14 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
 
         {/* Tab Navigation */}
         <div className="px-6 pt-3 border-b border-slate-200 dark:border-slate-800 flex gap-2 overflow-x-auto bg-slate-50/20 dark:bg-slate-900">
-          {[
-            { id: 'basics', label: '1. Event & Venue', icon: Calendar },
-            { id: 'budget', label: '2. Budget & Priorities', icon: Wallet },
-            { id: 'style', label: '3. Theme & Hospitality', icon: Palette },
-            { id: 'advanced', label: '4. Status & Notes', icon: Shield },
-          ].map((tab) => {
+          {controlTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl transition-all border-b-2 whitespace-nowrap ${
                   isActive
                     ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900'
@@ -340,10 +344,12 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
           {activeTab === 'basics' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="ctrl-event-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Event Title / Name *
                 </label>
                 <input
+                  id="ctrl-event-name"
+                  aria-label="Event Title / Name"
                   type="text"
                   required
                   value={name}
@@ -355,10 +361,12 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-event-type" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Event Type
                   </label>
                   <select
+                    id="ctrl-event-type"
+                    aria-label="Event Type"
                     value={eventType}
                     onChange={(e) => setEventType(e.target.value as EventType)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -372,12 +380,14 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-event-status" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Current Event Status
                   </label>
                   <select
+                    id="ctrl-event-status"
+                    aria-label="Current Event Status"
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
+                    onChange={(e) => setStatus(e.target.value as EventStatusOption)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Planning" className="bg-white dark:bg-slate-800">Planning (In Design)</option>
@@ -390,12 +400,14 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-start-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Start Date *
                   </label>
                   <div className="relative">
                     <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
+                      id="ctrl-start-date"
+                      aria-label="Start Date"
                       type="date"
                       required
                       value={startDate}
@@ -406,12 +418,14 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-end-date" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     End Date (Optional for multi-day)
                   </label>
                   <div className="relative">
                     <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
+                      id="ctrl-end-date"
+                      aria-label="End Date"
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
@@ -423,12 +437,14 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-city" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     City / Destination *
                   </label>
                   <div className="relative">
                     <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
+                      id="ctrl-city"
+                      aria-label="City / Destination"
                       type="text"
                       required
                       value={city}
@@ -440,10 +456,12 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-venue-setting" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Venue Setting
                   </label>
                   <select
+                    id="ctrl-venue-setting"
+                    aria-label="Venue Setting"
                     value={venueType}
                     onChange={(e) => setVenueType(e.target.value as VenueType)}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -455,12 +473,14 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-guest-count" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Expected Guests *
                   </label>
                   <div className="relative">
                     <Users className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
+                      id="ctrl-guest-count"
+                      aria-label="Expected Guests"
                       type="number"
                       min={1}
                       max={100000}
@@ -474,12 +494,14 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="ctrl-venue-pref" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Specific Venue Preference / Address
                 </label>
                 <div className="relative">
                   <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
+                    id="ctrl-venue-pref"
+                    aria-label="Specific Venue Preference / Address"
                     type="text"
                     value={venuePreference}
                     onChange={(e) => setVenuePreference(e.target.value)}
@@ -496,12 +518,14 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-total-budget" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Total Planned Budget *
                   </label>
                   <div className="relative">
                     <Wallet className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     <input
+                      id="ctrl-total-budget"
+                      aria-label="Total Planned Budget"
                       type="number"
                       min={1000}
                       step={1000}
@@ -517,10 +541,12 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="ctrl-currency" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Currency
                   </label>
                   <select
+                    id="ctrl-currency"
+                    aria-label="Currency"
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -561,6 +587,7 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                 <input
                   type="checkbox"
                   id="reproportion"
+                  aria-label="Auto-rebalance AI Plan Budget Allocations"
                   checked={reproportionPlan}
                   onChange={(e) => setReproportionPlan(e.target.checked)}
                   className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
@@ -683,6 +710,8 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
 
                 <div className="mt-3 flex items-center gap-2">
                   <input
+                    id="ctrl-custom-color"
+                    aria-label="Add custom color"
                     type="text"
                     value={customColor}
                     onChange={(e) => setCustomColor(e.target.value)}
@@ -713,6 +742,7 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                         {col}
                         <button
                           type="button"
+                          aria-label={`Remove color ${col}`}
                           onClick={() => setPreferredColors(preferredColors.filter((_, i) => i !== idx))}
                           className="text-slate-400 hover:text-red-500 ml-1"
                         >
@@ -750,6 +780,8 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                 </div>
                 <div className="flex items-center gap-2">
                   <input
+                    id="ctrl-custom-food"
+                    aria-label="Add custom dietary requirement or dish"
                     type="text"
                     value={customFood}
                     onChange={(e) => setCustomFood(e.target.value)}
@@ -792,6 +824,8 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
                 </div>
                 <div className="flex items-center gap-2">
                   <input
+                    id="ctrl-custom-entertainment"
+                    aria-label="Add custom performance or activity"
                     type="text"
                     value={customEntertainment}
                     onChange={(e) => setCustomEntertainment(e.target.value)}
@@ -814,10 +848,12 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
           {activeTab === 'advanced' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="ctrl-accessibility" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Accessibility & Guest Comfort Requirements
                 </label>
                 <textarea
+                  id="ctrl-accessibility"
+                  aria-label="Accessibility & Guest Comfort Requirements"
                   rows={2}
                   value={accessibilityRequirements}
                   onChange={(e) => setAccessibilityRequirements(e.target.value)}
@@ -827,10 +863,12 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="ctrl-cultural" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Cultural, Religious or Regional Traditions
                 </label>
                 <textarea
+                  id="ctrl-cultural"
+                  aria-label="Cultural, Religious or Regional Traditions"
                   rows={2}
                   value={culturalPreferences}
                   onChange={(e) => setCulturalPreferences(e.target.value)}
@@ -840,10 +878,12 @@ export const EventDetailsControlModal: React.FC<EventDetailsControlModalProps> =
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="ctrl-additional-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Additional Notes & Operational Instructions
                 </label>
                 <textarea
+                  id="ctrl-additional-notes"
+                  aria-label="Additional Notes & Operational Instructions"
                   rows={3}
                   value={additionalInstructions}
                   onChange={(e) => setAdditionalInstructions(e.target.value)}

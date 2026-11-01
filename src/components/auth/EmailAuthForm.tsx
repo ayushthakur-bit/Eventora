@@ -156,6 +156,7 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
 
           <button
             type="submit"
+            aria-label="Send Recovery Link"
             disabled={isLoading}
             className="w-full py-3 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer"
           >
@@ -366,8 +367,10 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
 
       {/* Remember me & Security badge */}
       <div className="flex items-center justify-between text-xs pt-1">
-        <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400">
+        <label htmlFor="email-auth-remember" className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400">
           <input
+            id="email-auth-remember"
+            aria-label="Remember this device"
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}

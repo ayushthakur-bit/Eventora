@@ -2,26 +2,131 @@ import React, { useState } from 'react';
 import {
   X,
   Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  Calendar,
-  MapPin,
-  Users,
-  Wallet,
-  Palette,
-  CheckCircle2,
   AlertCircle,
-  HelpCircle,
+  Cake,
+  Heart,
+  Briefcase,
+  GraduationCap,
+  Users,
+  Wand2,
+  CalendarHeart,
 } from 'lucide-react';
 import { EventType, ThemeType, VenueType, BudgetFlexibility, CurrencyCode, EventData } from '../types';
 import { useEvents } from '../context/EventContext';
-import { formatCurrency } from '../utils/budgetCalculations';
 
 interface CreateEventWizardProps {
   isOpen: boolean;
   onClose: () => void;
   onEventCreated: (event: EventData) => void;
 }
+
+interface AutoEventPreset {
+  city: string;
+  venuePreference: string;
+  venueType: VenueType;
+  guestCount: number;
+  totalBudget: number;
+  theme: ThemeType;
+  preferredColors: string[];
+  foodPreferences: string[];
+  entertainmentPreferences: string[];
+  spendingPriorities: string[];
+  costSavingCategories: string[];
+}
+
+const EVENT_PRESETS: Record<EventType, AutoEventPreset> = {
+  Wedding: {
+    city: 'Udaipur',
+    venuePreference: 'Heritage Palace Lawn & Grand Ballroom',
+    venueType: 'Mixed',
+    guestCount: 250,
+    totalBudget: 1500000,
+    theme: 'Traditional',
+    preferredColors: ['Royal Burgundy', 'Champagne Gold', 'Ivory'],
+    foodPreferences: ['Multi-cuisine royal buffet', 'Live chaat & artisanal dessert studio'],
+    entertainmentPreferences: ['Live Sufi & folk ensemble', 'Sangeet DJ & choreography'],
+    spendingPriorities: ['Venue', 'Food and catering', 'Decoration', 'Photography and videography'],
+    costSavingCategories: ['Invitations and stationery'],
+  },
+  Birthday: {
+    city: 'Mumbai',
+    venuePreference: 'Rooftop Lounge & Garden Deck',
+    venueType: 'Mixed',
+    guestCount: 80,
+    totalBudget: 200000,
+    theme: 'Colorful',
+    preferredColors: ['Electric Violet', 'Warm Gold', 'Midnight Blue'],
+    foodPreferences: ['Gourmet finger food', 'Custom celebration cake & mocktail bar'],
+    entertainmentPreferences: ['Live DJ', 'Interactive photo booth & games'],
+    spendingPriorities: ['Food and catering', 'Entertainment', 'Decoration'],
+    costSavingCategories: ['Transportation', 'Invitations and stationery'],
+  },
+  Anniversary: {
+    city: 'Jaipur',
+    venuePreference: 'Boutique Courtyard & Candlelit Banquet',
+    venueType: 'Indoor',
+    guestCount: 100,
+    totalBudget: 400000,
+    theme: 'Elegant',
+    preferredColors: ['Emerald Green', 'Champagne Gold', 'Pearl White'],
+    foodPreferences: ['Curated sit-down dinner', 'Signature desserts & mocktails'],
+    entertainmentPreferences: ['Acoustic live band', 'Memory lane visual projection'],
+    spendingPriorities: ['Venue', 'Food and catering', 'Photography and videography'],
+    costSavingCategories: ['Transportation'],
+  },
+  'Corporate Event': {
+    city: 'Bengaluru',
+    venuePreference: 'Convention Center & Executive Networking Hall',
+    venueType: 'Indoor',
+    guestCount: 200,
+    totalBudget: 650000,
+    theme: 'Minimal',
+    preferredColors: ['Slate Navy', 'Electric Indigo', 'Crisp White'],
+    foodPreferences: ['Executive networking lunch', 'Artisanal coffee & high-tea station'],
+    entertainmentPreferences: ['Keynote AV production', 'Evening networking jazz trio'],
+    spendingPriorities: ['Venue', 'Food and catering', 'Entertainment'],
+    costSavingCategories: ['Decoration'],
+  },
+  'College Event': {
+    city: 'Pune',
+    venuePreference: 'Open-Air Amphitheater & Campus Grounds',
+    venueType: 'Outdoor',
+    guestCount: 400,
+    totalBudget: 350000,
+    theme: 'Colorful',
+    preferredColors: ['Neon Coral', 'Cyber Cyan', 'Deep Violet'],
+    foodPreferences: ['Street food festival stalls', 'Energy drinks & quick bites'],
+    entertainmentPreferences: ['Battle of bands stage', 'Headliner DJ & concert lighting'],
+    spendingPriorities: ['Entertainment', 'Venue', 'Decoration'],
+    costSavingCategories: ['Invitations and stationery', 'Transportation'],
+  },
+  'Community Event': {
+    city: 'Delhi NCR',
+    venuePreference: 'Cultural Center & Community Lawn',
+    venueType: 'Outdoor',
+    guestCount: 300,
+    totalBudget: 300000,
+    theme: 'Cultural',
+    preferredColors: ['Marigold Orange', 'Festive Red', 'Warm Cream'],
+    foodPreferences: ['Traditional festive feast', 'Refreshment & sweet counters'],
+    entertainmentPreferences: ['Cultural dance performances', 'Community games & live emcee'],
+    spendingPriorities: ['Food and catering', 'Decoration', 'Entertainment'],
+    costSavingCategories: ['Invitations and stationery'],
+  },
+  Custom: {
+    city: 'Mumbai',
+    venuePreference: 'Bespoke Studio & Garden Venue',
+    venueType: 'Mixed',
+    guestCount: 120,
+    totalBudget: 450000,
+    theme: 'Elegant',
+    preferredColors: ['Indigo', 'Champagne', 'Ivory'],
+    foodPreferences: ['Chef-curated tasting menu', 'Live beverage bar'],
+    entertainmentPreferences: ['Curated live music', 'Immersive ambient lighting'],
+    spendingPriorities: ['Venue', 'Food and catering', 'Decoration'],
+    costSavingCategories: ['Invitations and stationery'],
+  },
+};
 
 export const CreateEventWizard: React.FC<CreateEventWizardProps> = ({
   isOpen,
@@ -30,140 +135,75 @@ export const CreateEventWizard: React.FC<CreateEventWizardProps> = ({
 }) => {
   const { createEvent } = useEvents();
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [name, setName] = useState('');
+  const [eventType, setEventType] = useState<EventType>('Wedding');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgressText, setGenerationProgressText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Form State
-  const [name, setName] = useState('');
-  const [eventType, setEventType] = useState<EventType>('Wedding');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [city, setCity] = useState('');
-  const [venuePreference, setVenuePreference] = useState('');
-  const [venueType, setVenueType] = useState<VenueType>('Mixed');
-  const [guestCount, setGuestCount] = useState<number>(150);
-
-  // Budget
-  const [totalBudget, setTotalBudget] = useState<number>(500000);
-  const [currency, setCurrency] = useState<CurrencyCode>('INR');
-  const [budgetFlexibility, setBudgetFlexibility] = useState<BudgetFlexibility>('Moderate');
-  const [spendingPriorities, setSpendingPriorities] = useState<string[]>(['Venue', 'Food and catering']);
-  const [costSavingCategories, setCostSavingCategories] = useState<string[]>(['Invitations and stationery']);
-
-  // Style & Preferences
-  const [theme, setTheme] = useState<ThemeType>('Traditional');
-  const [colorInput, setColorInput] = useState('Royal Burgundy, Champagne Gold, Ivory');
-  const [foodPreferences, setFoodPreferences] = useState('Authentic regional buffet, live chaat counter');
-  const [entertainmentPreferences, setEntertainmentPreferences] = useState('Live folk welcome artists & celebration DJ');
-  const [accessibilityRequirements, setAccessibilityRequirements] = useState('');
-  const [culturalPreferences, setCulturalPreferences] = useState('');
-  const [additionalInstructions, setAdditionalInstructions] = useState('');
-
   if (!isOpen) return null;
 
-  const eventTypeOptions: EventType[] = [
-    'Wedding',
-    'Birthday',
-    'Anniversary',
-    'College Event',
-    'Community Event',
-    'Corporate Event',
-    'Custom',
+  const eventTypeOptions: { type: EventType; label: string; subtitle: string; icon: React.ReactNode }[] = [
+    {
+      type: 'Wedding',
+      label: 'Wedding',
+      subtitle: 'Ceremonies, reception & rituals',
+      icon: <Heart className="w-4 h-4" />,
+    },
+    {
+      type: 'Birthday',
+      label: 'Birthday',
+      subtitle: 'Party, cake, music & celebration',
+      icon: <Cake className="w-4 h-4" />,
+    },
+    {
+      type: 'Anniversary',
+      label: 'Anniversary',
+      subtitle: 'Milestone dinner & celebration',
+      icon: <CalendarHeart className="w-4 h-4" />,
+    },
+    {
+      type: 'Corporate Event',
+      label: 'Corporate',
+      subtitle: 'Summits, galas & launches',
+      icon: <Briefcase className="w-4 h-4" />,
+    },
+    {
+      type: 'College Event',
+      label: 'College Fest',
+      subtitle: 'Cultural fests, concerts & Hackathons',
+      icon: <GraduationCap className="w-4 h-4" />,
+    },
+    {
+      type: 'Community Event',
+      label: 'Community',
+      subtitle: 'Festivals, gatherings & fairs',
+      icon: <Users className="w-4 h-4" />,
+    },
+    {
+      type: 'Custom',
+      label: 'Custom Event',
+      subtitle: 'Any bespoke celebration',
+      icon: <Wand2 className="w-4 h-4" />,
+    },
   ];
 
-  const themeOptions: ThemeType[] = [
-    'Elegant',
-    'Traditional',
-    'Minimal',
-    'Luxury',
-    'Rustic',
-    'Colorful',
-    'Cultural',
-    'Custom',
-  ];
+  const handleGeneratePlan = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-  const priorityOptions = [
-    'Venue',
-    'Food and catering',
-    'Decoration',
-    'Photography and videography',
-    'Entertainment',
-    'Invitations and stationery',
-    'Transportation',
-  ];
-
-  const togglePriority = (item: string) => {
-    if (spendingPriorities.includes(item)) {
-      setSpendingPriorities(spendingPriorities.filter((p) => p !== item));
-    } else {
-      setSpendingPriorities([...spendingPriorities, item]);
-    }
-  };
-
-  const toggleCostSaving = (item: string) => {
-    if (costSavingCategories.includes(item)) {
-      setCostSavingCategories(costSavingCategories.filter((c) => c !== item));
-    } else {
-      setCostSavingCategories([...costSavingCategories, item]);
-    }
-  };
-
-  // Validation
-  const validateStep1 = () => {
     if (!name.trim()) {
-      setError('Please provide an event name.');
-      return false;
+      setError('Please enter your event name to continue.');
+      return;
     }
-    if (!startDate) {
-      setError('Please select an event start date.');
-      return false;
-    }
-    if (!city.trim()) {
-      setError('Please provide the host city.');
-      return false;
-    }
-    if (!guestCount || guestCount <= 0) {
-      setError('Expected guests must be greater than zero.');
-      return false;
-    }
-    setError(null);
-    return true;
-  };
-
-  const validateStep2 = () => {
-    if (!totalBudget || totalBudget <= 0) {
-      setError('Total budget must be a positive number.');
-      return false;
-    }
-    setError(null);
-    return true;
-  };
-
-  const handleNext = () => {
-    if (step === 1 && !validateStep1()) return;
-    if (step === 2 && !validateStep2()) return;
-    setError(null);
-    setStep((prev) => Math.min(4, prev + 1) as any);
-  };
-
-  const handleBack = () => {
-    setError(null);
-    setStep((prev) => Math.max(1, prev - 1) as any);
-  };
-
-  const handleGeneratePlan = async () => {
-    if (!validateStep1() || !validateStep2()) return;
 
     setIsGenerating(true);
     setError(null);
 
     const progressMessages = [
-      'Analyzing event type, regional cues, and guest ergonomics...',
-      'Synthesizing mathematically balanced budget allocations...',
-      'Constructing pre-event timeline and minute-by-minute itinerary...',
-      'Formulating vendor sourcing questions and safety contingencies...',
+      `Understanding your ${eventType.toLowerCase()} vision for "${name.trim()}"...`,
+      'Calculating optimal budget allocations & vendor categories...',
+      'Building pre-event checklist & minute-by-minute schedule...',
+      'Finalizing your complete AI event workspace...',
     ];
 
     let msgIdx = 0;
@@ -171,29 +211,31 @@ export const CreateEventWizard: React.FC<CreateEventWizardProps> = ({
     const progressTimer = setInterval(() => {
       msgIdx = (msgIdx + 1) % progressMessages.length;
       setGenerationProgressText(progressMessages[msgIdx]);
-    }, 1800);
+    }, 1600);
+
+    const preset = EVENT_PRESETS[eventType] || EVENT_PRESETS.Custom;
+    const defaultStartDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
 
     const payload = {
       name: name.trim(),
       eventType,
-      startDate,
-      endDate: endDate || undefined,
-      city: city.trim(),
-      venuePreference: venuePreference.trim(),
-      venueType,
-      guestCount: Number(guestCount),
-      totalBudget: Number(totalBudget),
-      currency,
-      budgetFlexibility,
-      spendingPriorities,
-      costSavingCategories,
-      theme,
-      preferredColors: colorInput.split(',').map((c) => c.trim()).filter(Boolean),
-      foodPreferences: foodPreferences.split(',').map((f) => f.trim()).filter(Boolean),
-      entertainmentPreferences: entertainmentPreferences.split(',').map((e) => e.trim()).filter(Boolean),
-      accessibilityRequirements: accessibilityRequirements.trim() || undefined,
-      culturalPreferences: culturalPreferences.trim() || undefined,
-      additionalInstructions: additionalInstructions.trim() || undefined,
+      startDate: defaultStartDate,
+      city: preset.city,
+      venuePreference: preset.venuePreference,
+      venueType: preset.venueType,
+      guestCount: preset.guestCount,
+      totalBudget: preset.totalBudget,
+      currency: 'INR' as CurrencyCode,
+      budgetFlexibility: 'Moderate' as BudgetFlexibility,
+      spendingPriorities: preset.spendingPriorities,
+      costSavingCategories: preset.costSavingCategories,
+      theme: preset.theme,
+      preferredColors: preset.preferredColors,
+      foodPreferences: preset.foodPreferences,
+      entertainmentPreferences: preset.entertainmentPreferences,
+      additionalInstructions: `Automatically generate a complete, realistic ${eventType} blueprint for "${name.trim()}".`,
     };
 
     try {
@@ -212,25 +254,30 @@ export const CreateEventWizard: React.FC<CreateEventWizardProps> = ({
           plan: data.plan,
         });
         setIsGenerating(false);
+        setName('');
         onEventCreated(created);
         onClose();
       } else {
         throw new Error(data.message || 'Plan generation failed');
       }
-    } catch (err: any) {
+    } catch {
       clearInterval(progressTimer);
-      console.error('Plan generation failed:', err);
-      // Create with smart local fallback so user never gets stuck
       const created = await createEvent(payload);
       setIsGenerating(false);
+      setName('');
       onEventCreated(created);
       onClose();
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="AI Event Creator"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+    >
+      <div className="relative w-full max-w-xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -239,15 +286,17 @@ export const CreateEventWizard: React.FC<CreateEventWizardProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                AI Event Planning Wizard
+                Plan Event with AI
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Step {step} of 4: {step === 1 && 'Event Details'}{step === 2 && 'Budget & Priorities'}{step === 3 && 'Style & Preferences'}{step === 4 && 'Review & Generate'}
+                Tell AI your event name and type — we&apos;ll create everything automatically
               </p>
             </div>
           </div>
 
           <button
+            type="button"
+            aria-label="Close wizard"
             onClick={onClose}
             disabled={isGenerating}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -256,487 +305,132 @@ export const CreateEventWizard: React.FC<CreateEventWizardProps> = ({
           </button>
         </div>
 
-        {/* Step Progress Bar */}
-        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5">
-          <div
-            className="h-full bg-gradient-to-r from-violet-600 to-indigo-600 transition-all duration-300"
-            style={{ width: `${(step / 4) * 100}%` }}
-          />
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="mx-6 mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 flex items-center gap-2 text-xs text-red-600 dark:text-red-300">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Form Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
-          {/* STEP 1: EVENT DETAILS */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Event Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Aarav & Meera's Wedding or TechSummit 2026"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Event Type
-                  </label>
-                  <select
-                    value={eventType}
-                    onChange={(e) => setEventType(e.target.value as EventType)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    {eventTypeOptions.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Expected Number of Guests <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Users className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="number"
-                      min={1}
-                      value={guestCount}
-                      onChange={(e) => setGuestCount(parseInt(e.target.value, 10) || 0)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Start Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    End Date (Optional)
-                  </label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    City / Location <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="e.g. Udaipur, Mumbai, Bengaluru"
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Venue Setting
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['Indoor', 'Outdoor', 'Mixed'] as VenueType[]).map((v) => (
-                      <button
-                        type="button"
-                        key={v}
-                        onClick={() => setVenueType(v)}
-                        className={`py-2 text-xs font-medium rounded-xl border transition-all ${
-                          venueType === v
-                            ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold'
-                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Venue Preference / Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={venuePreference}
-                  onChange={(e) => setVenuePreference(e.target.value)}
-                  placeholder="e.g. Lakeside Heritage Courtyard, 5-Star Hotel Banquet, or Campus Auditorium"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+        {/* Body */}
+        <form onSubmit={handleGeneratePlan} className="p-6 overflow-y-auto space-y-6 flex-1">
+          {error && (
+            <div
+              role="alert"
+              className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 flex items-center gap-2.5 text-xs font-medium text-rose-700 dark:text-rose-300"
+            >
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
-          {/* STEP 2: BUDGET & PRIORITIES */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Total Planned Budget <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Wallet className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="number"
-                      min={1000}
-                      step={1000}
-                      value={totalBudget}
-                      onChange={(e) => setTotalBudget(parseFloat(e.target.value) || 0)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Formatted: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{formatCurrency(totalBudget, currency)}</span>
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Currency (Default INR ₹)
-                  </label>
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="INR">INR — Indian Rupee (₹)</option>
-                    <option value="USD">USD — US Dollar ($)</option>
-                    <option value="EUR">EUR — Euro (€)</option>
-                    <option value="GBP">GBP — British Pound (£)</option>
-                    <option value="AED">AED — UAE Dirham</option>
-                  </select>
+          {isGenerating ? (
+            <div className="py-12 px-4 text-center space-y-5">
+              <div className="relative w-16 h-16 mx-auto">
+                <div className="absolute inset-0 rounded-2xl bg-indigo-500/20 animate-ping" />
+                <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/30">
+                  <Sparkles className="w-8 h-8 animate-spin" />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Budget Flexibility
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Strict', 'Moderate', 'Flexible'] as BudgetFlexibility[]).map((f) => (
-                    <button
-                      type="button"
-                      key={f}
-                      onClick={() => setBudgetFlexibility(f)}
-                      className={`py-2 text-xs font-medium rounded-xl border transition-all ${
-                        budgetFlexibility === f
-                          ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Top Spending Priorities (AI will allocate higher share)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {priorityOptions.map((opt) => {
-                    const isSelected = spendingPriorities.includes(opt);
-                    return (
-                      <button
-                        type="button"
-                        key={opt}
-                        onClick={() => togglePriority(opt)}
-                        className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${
-                          isSelected
-                            ? 'bg-indigo-600 border-indigo-600 text-white font-medium'
-                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                        }`}
-                      >
-                        {isSelected ? '✓ ' : '+ '}
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Cost-Saving Target Areas (AI will propose economical alternatives)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {priorityOptions.map((opt) => {
-                    const isSelected = costSavingCategories.includes(opt);
-                    return (
-                      <button
-                        type="button"
-                        key={opt}
-                        onClick={() => toggleCostSaving(opt)}
-                        className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${
-                          isSelected
-                            ? 'bg-emerald-600 border-emerald-600 text-white font-medium'
-                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300'
-                        }`}
-                      >
-                        {isSelected ? '✓ ' : '+ '}
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: STYLE & PREFERENCES */}
-          {step === 3 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Aesthetic Theme
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {themeOptions.map((t) => (
-                    <button
-                      type="button"
-                      key={t}
-                      onClick={() => setTheme(t)}
-                      className={`p-2.5 text-xs font-medium rounded-xl border text-center transition-all ${
-                        theme === t
-                          ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Preferred Color Palette
-                </label>
-                <input
-                  type="text"
-                  value={colorInput}
-                  onChange={(e) => setColorInput(e.target.value)}
-                  placeholder="e.g. Royal Burgundy, Champagne Gold, Ivory, Emerald"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Food & Catering Preferences
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={foodPreferences}
-                    onChange={(e) => setFoodPreferences(e.target.value)}
-                    placeholder="e.g. Regional authentic buffet, live counter, Jain options, cocktail bar"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Entertainment & Music
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={entertainmentPreferences}
-                    onChange={(e) => setEntertainmentPreferences(e.target.value)}
-                    placeholder="e.g. Sitar welcome, DJ, emcee games, folk dance troupe"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Accessibility Requirements
-                  </label>
-                  <input
-                    type="text"
-                    value={accessibilityRequirements}
-                    onChange={(e) => setAccessibilityRequirements(e.target.value)}
-                    placeholder="e.g. Wheelchair ramp to mandap/stage, elevator access"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Cultural / Regional Traditions
-                  </label>
-                  <input
-                    type="text"
-                    value={culturalPreferences}
-                    onChange={(e) => setCulturalPreferences(e.target.value)}
-                    placeholder="e.g. Traditional Vedic rituals, Sangeet, Nikah, Christian service"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Additional Planner Notes
-                </label>
-                <input
-                  type="text"
-                  value={additionalInstructions}
-                  onChange={(e) => setAdditionalInstructions(e.target.value)}
-                  placeholder="e.g. Eco-friendly decor, minimal plastic, sunset photo schedule"
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: REVIEW & GENERATE */}
-          {step === 4 && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50">
-                <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-sm mb-1">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Ready for Gemini AI Synthesis</span>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  Review your event inputs below. Once confirmed, Eventora will build your comprehensive
-                  blueprint with balanced budgets, vendor checklists, and minute-by-minute schedules.
+              <div className="space-y-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  AI is Creating Your {eventType} Automatically...
+                </h3>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                  {generationProgressText}
+                </p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-sm mx-auto pt-1">
+                  Setting up your smart budget, timeline milestones, vendor checklist, and event workspace.
                 </p>
               </div>
+            </div>
+          ) : (
+            <>
+              {/* 1. Event Name */}
+              <div>
+                <label
+                  htmlFor="ai-event-name-input"
+                  className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2"
+                >
+                  1. What is your Event Name? *
+                </label>
+                <input
+                  id="ai-event-name-input"
+                  type="text"
+                  autoFocus
+                  required
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  placeholder="e.g., Priya & Rohan's Wedding or Aarav's Birthday Bash"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/90 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
 
-              {/* Review Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 space-y-1">
-                  <span className="text-slate-400 font-medium">Event & Scale</span>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">{name}</div>
-                  <div className="text-slate-600 dark:text-slate-300">
-                    {eventType} • {guestCount} Guests • {venueType}
-                  </div>
-                  <div className="text-slate-500">
-                    {city} • {startDate} {endDate ? `to ${endDate}` : ''}
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 space-y-1">
-                  <span className="text-slate-400 font-medium">Financial Parameters</span>
-                  <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
-                    {formatCurrency(totalBudget, currency)}
-                  </div>
-                  <div className="text-slate-600 dark:text-slate-300">
-                    Flexibility: {budgetFlexibility}
-                  </div>
-                  <div className="text-slate-500 truncate">
-                    Priorities: {spendingPriorities.join(', ') || 'Balanced'}
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 space-y-1 sm:col-span-2">
-                  <span className="text-slate-400 font-medium">Theme & Culinary Concept</span>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">
-                    {theme} Theme ({colorInput})
-                  </div>
-                  <div className="text-slate-600 dark:text-slate-300">
-                    <span className="font-medium">Food:</span> {foodPreferences}
-                  </div>
-                  <div className="text-slate-600 dark:text-slate-300">
-                    <span className="font-medium">Entertainment:</span> {entertainmentPreferences}
-                  </div>
+              {/* 2. Which Event (Event Type) */}
+              <div>
+                <span className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2.5">
+                  2. Which Event are you planning? *
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {eventTypeOptions.map((item) => {
+                    const isSelected = eventType === item.type;
+                    return (
+                      <button
+                        key={item.type}
+                        type="button"
+                        onClick={() => setEventType(item.type)}
+                        className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
+                          isSelected
+                            ? 'border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20'
+                            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`p-1.5 rounded-lg ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            {item.icon}
+                          </span>
+                          {isSelected && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold">{item.label}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                            {item.subtitle}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Navigation */}
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-between">
-          {step > 1 ? (
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={isGenerating}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center gap-1.5 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back
-            </button>
-          ) : (
-            <div />
+            </>
           )}
 
-          {step < 4 ? (
+          {/* Footer */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={handleNext}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
-            >
-              Next Step <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleGeneratePlan}
+              onClick={onClose}
               disabled={isGenerating}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
-              {isGenerating ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>{generationProgressText || 'Crafting Master Blueprint...'}</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Generate My Event Plan</span>
-                </>
-              )}
+              Cancel
             </button>
-          )}
-        </div>
+            <button
+              type="submit"
+              disabled={isGenerating}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4" />
+              {isGenerating ? 'Creating Event...' : 'Create Event with AI'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

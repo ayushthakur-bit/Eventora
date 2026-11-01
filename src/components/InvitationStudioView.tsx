@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
-  Copy,
-  Printer,
-  Check,
   Languages,
   Palette,
   Edit3,
@@ -11,7 +8,8 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
-import { exportInvitationCardToPdf, InvitationTemplateStyle } from '../utils/pdfExport';
+import { InvitationCardContent } from '../types';
+import { InvitationTemplateStyle } from '../utils/pdfExport';
 
 const CARD_THEMES: { id: InvitationTemplateStyle; label: string; badgeClass: string }[] = [
   {
@@ -46,7 +44,11 @@ const EMBLEM_OPTIONS = ['❦', '✦', '❈', '♛', '♥'];
 export const InvitationStudioView: React.FC = () => {
   const { activeEvent, getSavedInvitation, saveEventInvitation } = useEvents();
 
-  const getDefaultInvitationData = (evtName?: string, evtDate?: string, evtVenue?: string) => ({
+  const getDefaultInvitationData = (
+    evtName?: string,
+    evtDate?: string,
+    evtVenue?: string
+  ): InvitationCardContent => ({
     headline: 'A Joyous Celebration of Love & Unity',
     hosts: 'The Family & Loved Ones',
     mainBody: `With boundless joy and gratitude, we cordially invite you to join us in celebrating the ${evtName || 'Grand Celebration'}.\n\nYour gracious presence, warm blessings, and shared laughter will make this unforgettable milestone truly complete.`,
@@ -69,11 +71,9 @@ export const InvitationStudioView: React.FC = () => {
     savedInvite?.cardTitle || activeEvent?.name || 'Grand Celebration'
   );
   const [isGenerating, setIsGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [pdfSuccess, setPdfSuccess] = useState(false);
   const [isEditingManual, setIsEditingManual] = useState(false);
 
-  const [invitationData, setInvitationData] = useState<any>(() =>
+  const [invitationData, setInvitationData] = useState<InvitationCardContent>(() =>
     savedInvite?.invitationData ||
     getDefaultInvitationData(
       activeEvent?.name,
@@ -148,8 +148,8 @@ export const InvitationStudioView: React.FC = () => {
       if (data.success && data.invitation) {
         setInvitationData(data.invitation);
       }
-    } catch (err) {
-      console.error('Failed to generate invite:', err);
+    } catch {
+      // Retain existing invitation card data on network error
     } finally {
       setIsGenerating(false);
     }
@@ -165,28 +165,6 @@ export const InvitationStudioView: React.FC = () => {
         activeEvent.venuePreference || activeEvent.city
       )
     );
-  };
-
-  const handleCopyText = () => {
-    const fullText = `${invitationData.headline}\n\n${invitationData.hosts}\n\n${cardTitle}\n\n${invitationData.mainBody}\n\n${invitationData.itineraryHighlight}\n\n${invitationData.rsvpDetails}\n\n"${invitationData.quote}"`;
-    navigator.clipboard.writeText(fullText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
-  };
-
-  const handlePrint = () => {
-    const ok = exportInvitationCardToPdf({
-      eventName: cardTitle || activeEvent.name,
-      templateStyle,
-      emblem,
-      language,
-      tone,
-      invitationData,
-    });
-    if (ok) {
-      setPdfSuccess(true);
-      setTimeout(() => setPdfSuccess(false), 3500);
-    }
   };
 
   const getCardContainerClasses = (style: InvitationTemplateStyle) => {
@@ -223,47 +201,6 @@ export const InvitationStudioView: React.FC = () => {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Craft heartfelt, poetic invitation cards in English, Hindi, and Gujarati tailored to your theme.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopyText}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copy Invitation</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePrint}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
-              pdfSuccess
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/25'
-            }`}
-          >
-            {pdfSuccess ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>Invitation PDF Downloaded!</span>
-              </>
-            ) : (
-              <>
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print / Download PDF</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
@@ -477,10 +414,12 @@ export const InvitationStudioView: React.FC = () => {
 
               {isEditingManual ? (
                 <div className="space-y-2 max-w-md mx-auto">
-                  <label className="block text-[10px] uppercase tracking-wider opacity-75">
+                  <label htmlFor="invite-headline" className="block text-[10px] uppercase tracking-wider opacity-75">
                     Headline Banner
                   </label>
                   <input
+                    id="invite-headline"
+                    aria-label="Invitation Headline Banner"
                     type="text"
                     value={invitationData.headline}
                     onChange={(e) =>
@@ -490,10 +429,12 @@ export const InvitationStudioView: React.FC = () => {
                     className={`${getInputClasses(templateStyle)} text-xs font-semibold uppercase tracking-widest`}
                   />
 
-                  <label className="block text-[10px] uppercase tracking-wider opacity-75 pt-1">
+                  <label htmlFor="invite-hosts" className="block text-[10px] uppercase tracking-wider opacity-75 pt-1">
                     Hosts Line
                   </label>
                   <input
+                    id="invite-hosts"
+                    aria-label="Invitation Hosts Line"
                     type="text"
                     value={invitationData.hosts}
                     onChange={(e) =>
@@ -520,10 +461,12 @@ export const InvitationStudioView: React.FC = () => {
               {isEditingManual ? (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider opacity-75 mb-1">
+                    <label htmlFor="invite-card-title" className="block text-[10px] uppercase tracking-wider opacity-75 mb-1">
                       Celebration Title
                     </label>
                     <input
+                      id="invite-card-title"
+                      aria-label="Celebration Title"
                       type="text"
                       value={cardTitle}
                       onChange={(e) => setCardTitle(e.target.value)}
@@ -533,10 +476,12 @@ export const InvitationStudioView: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider opacity-75 mb-1">
+                    <label htmlFor="invite-main-body" className="block text-[10px] uppercase tracking-wider opacity-75 mb-1">
                       Invitation Message Body
                     </label>
                     <textarea
+                      id="invite-main-body"
+                      aria-label="Invitation Message Body"
                       rows={5}
                       value={invitationData.mainBody}
                       onChange={(e) =>
@@ -548,10 +493,12 @@ export const InvitationStudioView: React.FC = () => {
                   </div>
 
                   <div className="pt-3 border-t border-current/15 space-y-2">
-                    <label className="block text-[10px] uppercase tracking-wider opacity-75">
+                    <label htmlFor="invite-itinerary" className="block text-[10px] uppercase tracking-wider opacity-75">
                       Date, Time & Venue Line
                     </label>
                     <input
+                      id="invite-itinerary"
+                      aria-label="Date, Time and Venue Line"
                       type="text"
                       value={invitationData.itineraryHighlight}
                       onChange={(e) =>
@@ -564,10 +511,12 @@ export const InvitationStudioView: React.FC = () => {
                       className={`${getInputClasses(templateStyle)} text-xs sm:text-sm font-bold`}
                     />
 
-                    <label className="block text-[10px] uppercase tracking-wider opacity-75 pt-1">
+                    <label htmlFor="invite-rsvp" className="block text-[10px] uppercase tracking-wider opacity-75 pt-1">
                       RSVP Instructions
                     </label>
                     <input
+                      id="invite-rsvp"
+                      aria-label="RSVP Instructions"
                       type="text"
                       value={invitationData.rsvpDetails}
                       onChange={(e) =>
@@ -604,10 +553,12 @@ export const InvitationStudioView: React.FC = () => {
             <div className="pt-4 border-t border-white/10 dark:border-slate-800 text-[11px] italic opacity-75">
               {isEditingManual ? (
                 <div className="max-w-lg mx-auto">
-                  <label className="block text-[10px] not-italic uppercase tracking-wider opacity-75 mb-1">
+                  <label htmlFor="invite-quote" className="block text-[10px] not-italic uppercase tracking-wider opacity-75 mb-1">
                     Footer Blessing / Quote
                   </label>
                   <input
+                    id="invite-quote"
+                    aria-label="Footer Blessing or Quote"
                     type="text"
                     value={invitationData.quote}
                     onChange={(e) =>

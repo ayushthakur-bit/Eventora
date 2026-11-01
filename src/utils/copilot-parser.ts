@@ -12,7 +12,7 @@ export interface ProposedCopilotAction {
   type: 'add_task' | 'add_expense' | 'add_vendor' | 'add_schedule';
   label: string;
   description: string;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   applied?: boolean;
 }
 

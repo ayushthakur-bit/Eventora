@@ -1,19 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Store,
   PlusCircle,
   Phone,
   Mail,
-  MapPin,
   Star,
-  CheckCircle2,
-  Clock,
   Trash2,
   Edit2,
   X,
-  Layers,
-  ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import { EventVendor, VendorStatus } from '../types';
@@ -41,14 +34,6 @@ export const VendorManagementView: React.FC = () => {
   const [rating, setRating] = useState<number>(5);
   const [error, setError] = useState<string | null>(null);
 
-  if (!activeEvent) {
-    return (
-      <div className="p-8 text-center text-slate-500">
-        No active event selected.
-      </div>
-    );
-  }
-
   const categories = useMemo(() => {
     const set = new Set<string>();
     vendors.forEach((v) => set.add(v.category));
@@ -59,6 +44,14 @@ export const VendorManagementView: React.FC = () => {
     if (selectedCategory === 'All') return vendors;
     return vendors.filter((v) => v.category === selectedCategory);
   }, [vendors, selectedCategory]);
+
+  if (!activeEvent) {
+    return (
+      <div className="p-8 text-center text-slate-500">
+        No active event selected.
+      </div>
+    );
+  }
 
   const handleOpenAdd = () => {
     setEditingVendor(null);
@@ -446,13 +439,20 @@ export const VendorManagementView: React.FC = () => {
 
       {/* Add / Edit Vendor Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingVendor ? 'Edit Vendor Record' : 'Record New Vendor'}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+        >
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {editingVendor ? 'Edit Vendor Record' : 'Record New Vendor'}
               </h3>
               <button
+                type="button"
+                aria-label="Close vendor modal"
                 onClick={() => setIsModalOpen(false)}
                 className="p-1 rounded text-slate-400 hover:text-slate-600"
               >
@@ -468,10 +468,12 @@ export const VendorManagementView: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="vendor-business-name" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Business / Vendor Name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="vendor-business-name"
+                  aria-label="Business or Vendor Name"
                   type="text"
                   required
                   value={businessName}
@@ -482,10 +484,12 @@ export const VendorManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="vendor-category-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Category
                 </label>
                 <select
+                  id="vendor-category-select"
+                  aria-label="Vendor Category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -503,10 +507,12 @@ export const VendorManagementView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="vendor-phone-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Phone Contact
                   </label>
                   <input
+                    id="vendor-phone-input"
+                    aria-label="Vendor Phone Contact"
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -516,10 +522,12 @@ export const VendorManagementView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="vendor-email-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Email Contact
                   </label>
                   <input
+                    id="vendor-email-input"
+                    aria-label="Vendor Email Contact"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -531,10 +539,12 @@ export const VendorManagementView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="vendor-quoted-amount" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Quoted Amount ({activeEvent.currency})
                   </label>
                   <input
+                    id="vendor-quoted-amount"
+                    aria-label="Vendor Quoted Amount"
                     type="number"
                     min={0}
                     value={quotedAmount}
@@ -544,10 +554,12 @@ export const VendorManagementView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="vendor-advance-payment" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Advance Payment
                   </label>
                   <input
+                    id="vendor-advance-payment"
+                    aria-label="Vendor Advance Payment"
                     type="number"
                     min={0}
                     value={advancePayment}
@@ -559,10 +571,12 @@ export const VendorManagementView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="vendor-booking-status" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Booking Status
                   </label>
                   <select
+                    id="vendor-booking-status"
+                    aria-label="Vendor Booking Status"
                     value={bookingStatus}
                     onChange={(e) => setBookingStatus(e.target.value as VendorStatus)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -575,10 +589,12 @@ export const VendorManagementView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="vendor-rating-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Rating (1-5 Stars)
                   </label>
                   <select
+                    id="vendor-rating-select"
+                    aria-label="Vendor Rating"
                     value={rating}
                     onChange={(e) => setRating(parseInt(e.target.value, 10))}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -593,10 +609,12 @@ export const VendorManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="vendor-contract-notes" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Contract Deliverables & Notes
                 </label>
                 <textarea
+                  id="vendor-contract-notes"
+                  aria-label="Vendor Contract Deliverables and Notes"
                   rows={2}
                   value={contractNotes}
                   onChange={(e) => setContractNotes(e.target.value)}

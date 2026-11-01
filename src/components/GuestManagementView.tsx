@@ -1,23 +1,14 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Users,
   PlusCircle,
-  Upload,
-  Download,
   Search,
-  Filter,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  HelpCircle,
   Trash2,
   Edit2,
   X,
-  FileSpreadsheet,
-  Check,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import { EventGuest, RSVPStatus, GuestGroup } from '../types';
+import { computeGuestMetrics } from '../utils/data-management';
 
 export const GuestManagementView: React.FC = () => {
   const {
@@ -26,8 +17,6 @@ export const GuestManagementView: React.FC = () => {
     addGuest,
     updateGuest,
     deleteGuest,
-    importGuestsFromCsv,
-    exportGuestsToCsv,
   } = useEvents();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,43 +34,8 @@ export const GuestManagementView: React.FC = () => {
   const [attendanceCount, setAttendanceCount] = useState<number>(1);
   const [error, setError] = useState<string | null>(null);
 
-  // CSV Import State
-  const [importNotification, setImportNotification] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  if (!activeEvent) {
-    return (
-      <div className="p-8 text-center text-slate-500">
-        No active event selected.
-      </div>
-    );
-  }
-
-  // RSVP Metrics
-  const metrics = useMemo(() => {
-    let attendingHeads = 0;
-    let pendingHeads = 0;
-    let declinedHeads = 0;
-    let specialDietCount = 0;
-
-    guests.forEach((g) => {
-      if (g.rsvpStatus === 'Attending') attendingHeads += g.attendanceCount;
-      else if (g.rsvpStatus === 'Declined') declinedHeads += g.attendanceCount;
-      else pendingHeads += g.attendanceCount;
-
-      if (g.dietaryRequirements && g.dietaryRequirements.trim().length > 0) {
-        specialDietCount++;
-      }
-    });
-
-    return {
-      totalGuests: guests.length,
-      attendingHeads,
-      pendingHeads,
-      declinedHeads,
-      specialDietCount,
-    };
-  }, [guests]);
+  // RSVP Metrics (computed via pure utility before early return)
+  const metrics = useMemo(() => computeGuestMetrics(guests), [guests]);
 
   // Filtered List
   const filteredGuests = useMemo(() => {
@@ -95,6 +49,14 @@ export const GuestManagementView: React.FC = () => {
       return matchesSearch && matchesRsvp && matchesGroup;
     });
   }, [guests, searchQuery, filterRsvp, filterGroup]);
+
+  if (!activeEvent) {
+    return (
+      <div className="p-8 text-center text-slate-500">
+        No active event selected.
+      </div>
+    );
+  }
 
   const handleOpenAdd = () => {
     setEditingGuest(null);
@@ -145,35 +107,6 @@ export const GuestManagementView: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  const handleExportCsv = () => {
-    const csvData = exportGuestsToCsv();
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${activeEvent.name.replace(/[^a-zA-Z0-9]/g, '_')}_GuestList.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (text) {
-        const imported = importGuestsFromCsv(text);
-        setImportNotification(`Successfully imported ${imported} guests from CSV!`);
-        setTimeout(() => setImportNotification(null), 4000);
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  };
-
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
       {/* Header */}
@@ -188,29 +121,6 @@ export const GuestManagementView: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept=".csv,text/csv"
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Import CSV</span>
-          </button>
-
-          <button
-            onClick={handleExportCsv}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
-          </button>
-
           <button
             onClick={handleOpenAdd}
             className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
@@ -220,13 +130,6 @@ export const GuestManagementView: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {importNotification && (
-        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{importNotification}</span>
-        </div>
-      )}
 
       {/* Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -276,6 +179,8 @@ export const GuestManagementView: React.FC = () => {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
+            id="guest-search-input"
+            aria-label="Search guests by name, phone, or dietary notes"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -286,6 +191,8 @@ export const GuestManagementView: React.FC = () => {
 
         <div className="flex items-center gap-2 text-xs">
           <select
+            id="guest-filter-rsvp"
+            aria-label="Filter guests by RSVP status"
             value={filterRsvp}
             onChange={(e) => setFilterRsvp(e.target.value)}
             className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
@@ -298,6 +205,8 @@ export const GuestManagementView: React.FC = () => {
           </select>
 
           <select
+            id="guest-filter-group"
+            aria-label="Filter guests by circle or group"
             value={filterGroup}
             onChange={(e) => setFilterGroup(e.target.value)}
             className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
@@ -373,14 +282,14 @@ export const GuestManagementView: React.FC = () => {
                       <button
                         onClick={() => handleOpenEdit(g)}
                         className="p-1 rounded text-slate-400 hover:text-indigo-600 mr-1"
-                        aria-label="Edit guest"
+                        aria-label={`Edit guest ${g.name}`}
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => deleteGuest(g.id)}
                         className="p-1 rounded text-slate-400 hover:text-red-600"
-                        aria-label="Delete guest"
+                        aria-label={`Delete guest ${g.name}`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -395,13 +304,20 @@ export const GuestManagementView: React.FC = () => {
 
       {/* Add / Edit Guest Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingGuest ? 'Edit Guest' : 'Add New Guest'}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+        >
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 {editingGuest ? 'Edit Guest' : 'Add New Guest'}
               </h3>
               <button
+                type="button"
+                aria-label="Close guest modal"
                 onClick={() => setIsModalOpen(false)}
                 className="p-1 rounded text-slate-400 hover:text-slate-600"
               >
@@ -417,10 +333,12 @@ export const GuestManagementView: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="guest-name-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Guest / Household Name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="guest-name-input"
+                  aria-label="Guest or Household Name"
                   type="text"
                   required
                   value={name}
@@ -432,10 +350,12 @@ export const GuestManagementView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="guest-group-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Circle / Group
                   </label>
                   <select
+                    id="guest-group-select"
+                    aria-label="Guest Circle or Group"
                     value={group}
                     onChange={(e) => setGroup(e.target.value as GuestGroup)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -449,10 +369,12 @@ export const GuestManagementView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="guest-rsvp-select" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     RSVP Status
                   </label>
                   <select
+                    id="guest-rsvp-select"
+                    aria-label="Guest RSVP Status"
                     value={rsvpStatus}
                     onChange={(e) => setRsvpStatus(e.target.value as RSVPStatus)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -467,10 +389,12 @@ export const GuestManagementView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="guest-contact-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Contact (Phone or Email)
                   </label>
                   <input
+                    id="guest-contact-input"
+                    aria-label="Guest Contact Info"
                     type="text"
                     value={contactInfo}
                     onChange={(e) => setContactInfo(e.target.value)}
@@ -480,10 +404,12 @@ export const GuestManagementView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="guest-heads-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Attending Heads
                   </label>
                   <input
+                    id="guest-heads-input"
+                    aria-label="Attending Heads"
                     type="number"
                     min={1}
                     value={attendanceCount}
@@ -494,10 +420,12 @@ export const GuestManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="guest-dietary-input" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Dietary Requirements (Optional)
                 </label>
                 <input
+                  id="guest-dietary-input"
+                  aria-label="Dietary Requirements"
                   type="text"
                   value={dietaryRequirements}
                   onChange={(e) => setDietaryRequirements(e.target.value)}

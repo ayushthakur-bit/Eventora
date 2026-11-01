@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Compass,
   FileSpreadsheet,
-  GitBranch,
   Wallet,
   CheckSquare,
   Users,
@@ -12,10 +11,8 @@ import {
   MailOpen,
   Settings,
   ChevronRight,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
-import { formatCurrency } from '../utils/budgetCalculations';
 
 interface SidebarProps {
   currentView: string;
@@ -32,9 +29,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCurrentView,
   isMobileOpen,
   setIsMobileOpen,
-  onOpenControlModal,
-  darkMode,
-  setDarkMode,
+  onOpenControlModal: _onOpenControlModal,
+  darkMode: _darkMode,
+  setDarkMode: _setDarkMode,
 }) => {
   const { activeEvent } = useEvents();
 
@@ -42,13 +39,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'All Events', icon: LayoutDashboard },
     { id: 'overview', label: 'Event Overview', icon: Compass, requireEvent: true },
     { id: 'ai-plan', label: 'AI Master Plan', icon: FileSpreadsheet, requireEvent: true },
-    {
-      id: 'what-if',
-      label: 'What-If Planner',
-      icon: GitBranch,
-      requireEvent: true,
-      badge: 'Signature',
-    },
     { id: 'budget', label: 'Budget & Expenses', icon: Wallet, requireEvent: true },
     { id: 'tasks', label: 'Tasks & Timeline', icon: CheckSquare, requireEvent: true },
     { id: 'vendors', label: 'Vendors', icon: Store, requireEvent: true },
@@ -80,41 +70,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         } flex flex-col justify-between p-4 overflow-y-auto backdrop-blur-sm`}
       >
         <div className="space-y-4">
-          {/* Active Event Mini Pill */}
-          {activeEvent && (
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/20 border border-indigo-100 dark:border-indigo-900/50">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                  Active Event
-                </span>
-                <button
-                  onClick={onOpenControlModal}
-                  className="p-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 transition-colors"
-                  title="Control Event Details"
-                  aria-label="Control Event Details"
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate mt-0.5">
-                {activeEvent.name}
-              </h2>
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                <span>{activeEvent.eventType}</span>
-                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                  {formatCurrency(activeEvent.totalBudget, activeEvent.currency)}
-                </span>
-              </div>
-              <button
-                onClick={onOpenControlModal}
-                className="mt-2 w-full py-1.5 px-2 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center justify-center gap-1.5 transition-all shadow-2xs"
-              >
-                <SlidersHorizontal className="w-3 h-3 text-indigo-500" />
-                <span>Control Event Details</span>
-              </button>
-            </div>
-          )}
-
           {/* Navigation Links */}
           <nav className="space-y-1" aria-label="Sidebar Navigation">
             {navItems.map((item) => {

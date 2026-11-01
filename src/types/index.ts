@@ -217,3 +217,13 @@ export interface WhatIfSimulationResult {
   }>;
   recommendations: string[];
 }
+
+export interface InvitationCardContent {
+  headline: string;
+  hosts: string;
+  mainBody: string;
+  itineraryHighlight: string;
+  rsvpDetails: string;
+  quote: string;
+}
+

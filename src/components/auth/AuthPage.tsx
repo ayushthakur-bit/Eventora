@@ -4,17 +4,10 @@ import {
   ArrowLeft,
   Mail,
   Phone,
-  ShieldCheck,
-  CheckCircle2,
   AlertCircle,
-  Sun,
-  Moon,
-  ArrowRight,
   Zap,
   TrendingUp,
-  Layers,
   HeartHandshake,
-  Lock,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
@@ -37,8 +30,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   initialMethod = 'email',
   onNavigateHome,
   onNavigateDashboard,
-  darkMode,
-  setDarkMode,
+  darkMode: _darkMode,
+  setDarkMode: _setDarkMode,
 }) => {
   const { currentUser, savedAccounts, isAuthenticated, switchAccount, logout } = useAuth();
 
@@ -65,28 +58,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
     // Navigate directly to user's workspace dashboard
     onNavigateDashboard();
-  };
-
-  const getProviderIcon = (provider?: string) => {
-    if (provider === 'google') {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-semibold border border-blue-200 dark:border-blue-800">
-          Google Account
-        </span>
-      );
-    }
-    if (provider === 'phone') {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-800">
-          Phone Verified (SMS OTP)
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold border border-indigo-200 dark:border-indigo-800">
-        Email & Password
-      </span>
-    );
   };
 
   return (

@@ -9,13 +9,11 @@ import {
   CheckCircle2,
   Undo2,
   AlertCircle,
-  HelpCircle,
-  Layers,
   Check,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import { WhatIfSimulationResult } from '../types';
-import { formatCurrency, calculateCategoryVariance } from '../utils/budgetCalculations';
+import { formatCurrency } from '../utils/budgetCalculations';
 
 export const WhatIfPlannerView: React.FC = () => {
   const {
@@ -77,8 +75,7 @@ export const WhatIfPlannerView: React.FC = () => {
       } else {
         throw new Error(data.message || 'Simulation failed');
       }
-    } catch (err: unknown) {
-      console.error('What-If simulation error:', err instanceof Error ? err.message : err);
+    } catch {
       setError('Could not complete AI simulation. Please try again.');
     } finally {
       setIsSimulating(false);
@@ -337,6 +334,8 @@ export const WhatIfPlannerView: React.FC = () => {
                 </button>
 
                 <button
+                  type="button"
+                  aria-label="Confirm and Apply to Event Plan"
                   onClick={handleApply}
                   className="px-6 py-2.5 rounded-xl font-bold text-xs text-white bg-violet-600 hover:bg-violet-700 shadow-md shadow-violet-600/30 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
                 >

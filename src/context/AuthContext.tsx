@@ -66,8 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return upsertRegisteredAccount(localStorage, normalizedUser);
         }
       }
-    } catch (e) {
-      console.warn('Failed to parse saved user:', e);
+    } catch {
+      // Ignore malformed stored session and require fresh sign-in
     }
     // Visitors start unauthenticated and must sign in
     return null;
@@ -243,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const verifyPhoneOtp = async (
     phoneNumber: string,
     code: string,
-    mode: 'login' | 'signup',
+    _mode: 'login' | 'signup',
     name?: string
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);

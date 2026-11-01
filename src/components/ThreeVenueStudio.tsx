@@ -1,18 +1,14 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import {
-  Sparkles,
-  Maximize2,
   ChevronDown,
   ChevronUp,
   Eye,
   Check,
-  RotateCcw,
   Sliders,
   Palette,
-  Users,
   Compass,
   Layers,
   Save,
@@ -20,12 +16,6 @@ import {
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import { VenueType, ThemeType } from '../types';
-
-// Pre-allocated scratch objects to prevent garbage collection spikes in 60fps render loop
-const _vec3 = new THREE.Vector3();
-const _targetVec = new THREE.Vector3();
-const _posA = new THREE.Vector3();
-const _posB = new THREE.Vector3();
 
 // Detect software WebGL safely without user-agent sniffing
 const isSoftwareGl = (() => {
@@ -136,8 +126,6 @@ export const ThreeVenueStudio: React.FC<ThreeVenueStudioProps> = ({ onBackToOver
   const controlsRef = useRef<OrbitControls | null>(null);
 
   // Dynamic Scene Elements references
-  const stageGroupRef = useRef<THREE.Group | null>(null);
-  const tablesGroupRef = useRef<THREE.Group | null>(null);
   const floorMeshRef = useRef<THREE.Mesh | null>(null);
   const lightingGroupRef = useRef<THREE.Group | null>(null);
   const environmentGroupRef = useRef<THREE.Group | null>(null);
@@ -826,6 +814,8 @@ export const ThreeVenueStudio: React.FC<ThreeVenueStudioProps> = ({ onBackToOver
       <div className="absolute top-5 left-5 z-20 flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-white shadow-xl pointer-events-auto">
         {onBackToOverview && (
           <button
+            type="button"
+            aria-label="Return to Overview"
             onClick={onBackToOverview}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             title="Return to Overview"
@@ -947,6 +937,8 @@ export const ThreeVenueStudio: React.FC<ThreeVenueStudioProps> = ({ onBackToOver
                 Exploded Layers:
               </span>
               <input
+                id="three-exploded-layers"
+                aria-label="Exploded Layers"
                 type="range"
                 min={0}
                 max={1}
@@ -996,6 +988,8 @@ export const ThreeVenueStudio: React.FC<ThreeVenueStudioProps> = ({ onBackToOver
                   </span>
                 </div>
                 <input
+                  id="three-guest-headcount"
+                  aria-label="Guest Headcount"
                   type="range"
                   min={40}
                   max={450}

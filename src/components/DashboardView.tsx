@@ -6,8 +6,6 @@ import {
   Calendar,
   MapPin,
   Users,
-  Wallet,
-  Clock,
   ArrowRight,
   MoreVertical,
   Copy,
@@ -17,7 +15,6 @@ import {
   CheckCircle,
   AlertCircle,
   SlidersHorizontal,
-  Edit3,
 } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
@@ -35,7 +32,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenCreateWizard,
   onOpenEvent,
   onOpenControlModal,
-  onNavigate,
+  onNavigate: _onNavigate,
 }) => {
   const { currentUser } = useAuth();
   const {
@@ -207,6 +204,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
+            id="dashboard-search-events"
+            aria-label="Search events by name or city"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -217,11 +216,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Filters */}
         <div className="w-full md:w-auto flex flex-wrap items-center gap-2.5">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+          <label htmlFor="dashboard-filter-type" className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
             <Filter className="w-3.5 h-3.5" />
             <span>Type:</span>
-          </div>
+          </label>
           <select
+            id="dashboard-filter-type"
+            aria-label="Filter events by type"
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
             className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -233,10 +234,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             ))}
           </select>
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 ml-2">
+          <label htmlFor="dashboard-filter-status" className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 ml-2">
             <span>Status:</span>
-          </div>
+          </label>
           <select
+            id="dashboard-filter-status"
+            aria-label="Filter events by status"
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -248,12 +251,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <option value="Completed">Completed</option>
           </select>
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 ml-2">
+          <label htmlFor="dashboard-sort-by" className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 ml-2">
             <span>Sort:</span>
-          </div>
+          </label>
           <select
+            id="dashboard-sort-by"
+            aria-label="Sort events by"
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as 'date' | 'budget' | 'name')}
             className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="date">Date</option>
